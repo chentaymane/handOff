@@ -23,7 +23,7 @@ Finished and installed. `python install.py --hooks --rules` ran on 2026-09-16: t
 - [x] `install.py` - tested in a fake home (`USERPROFILE` override): dry run changes nothing; install merges with existing hooks, env and a CRLF CLAUDE.md; a second run adds no duplicates; uninstall restores settings.json (JSON-equal) and CLAUDE.md (byte-identical) and keeps a `settings.json.before-handoff` backup.
 - [x] `README.md` - install, per-tool folders, hook, rules, usage, limits, uninstall.
 - [x] Installed on this machine and verified (skill folders, settings.json, four rule files, hook run from the installed copy).
-- [x] Committed and pushed to https://github.com/chentaymane/Memory-Skill
+- [x] Committed and pushed to https://github.com/chentaymane/Save-Skill (the GitHub repo was renamed from Memory-Skill; the old URL still redirects, and the local remote is still set to it)
 
 ## Decisions and constraints
 - Output file is `HANDOFF.md` at the project root; never overwrite the project's README.md.
@@ -60,17 +60,19 @@ Finished and installed. `python install.py --hooks --rules` ran on 2026-09-16: t
 <!-- handoff:snapshot:start -->
 ## Repo snapshot (auto-generated)
 
-_Captured 2026-09-16 00:24 +0100 by `snapshot.py`. Compare with the live repo (`git status`) before continuing._
+_Captured 2026-09-16 00:26 +0100 by `snapshot.py`. Compare with the live repo (`git status`) before continuing._
 
 - **Root:** `C:\Users\chent\Desktop\Memory-Skill`
 - **OS:** Windows 10
-- **Branch:** `main` @ `76aa910` - Add handoff skill: cross-CLI HANDOFF.md for continuing work in any agent (1 second ago)
+- **Branch:** `main` @ `5a775a8` - Add the handoff written while building this skill (2 minutes ago)
+- **Upstream:** `origin/main` - ahead 0, behind 0
 - **Remote:** https://github.com/chentaymane/Memory-Skill.git
-- **Uncommitted:** 0 changed, 0 untracked
+- **Uncommitted:** 0 changed (1 file changed, 1 insertion(+), 1 deletion(-)), 0 untracked
 
 **Recent commits**
 
 ```
+5a775a8 2026-09-16 Add the handoff written while building this skill
 76aa910 2026-09-16 Add handoff skill: cross-CLI HANDOFF.md for continuing work in any agent
 ```
 <!-- handoff:snapshot:end -->
