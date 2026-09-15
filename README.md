@@ -1,75 +1,76 @@
-# Memory-Skill: `handoff`
+<div align="center">
+
+<img src="assets/logo.svg" alt="handoff" width="112" height="112">
+
+# handoff
 
 **Never lose your work when the tokens run out.**
 
-`handoff` is one skill for all your coding agents. When the context window or your usage limit is almost used up, the agent writes a **`HANDOFF.md`** file in your project: what we are building, where we stopped, what to do next, and everything another agent needs to know. Then you open the project in any other tool, or a new session, and say:
+One skill for every coding agent. It writes a `HANDOFF.md` that any other agent can pick up.
+
+[![Agent Skills](https://img.shields.io/badge/Agent_Skills-compatible-6366f1?style=flat-square)](https://agentskills.io)
+[![Works with](https://img.shields.io/badge/works_with-Claude_Code,_Codex,_Gemini,_Antigravity,_Cursor,_Copilot,_OpenCode-0d9488?style=flat-square)](#which-tool-does-what)
+[![Python](https://img.shields.io/badge/python-3.8+-3776ab?style=flat-square)](https://www.python.org/)
+[![Platforms](https://img.shields.io/badge/platforms-Windows,_macOS,_Linux-475569?style=flat-square)](#install)
+
+</div>
+
+---
+
+## The problem
+
+Your context window fills up. Your credit runs out. The session expires. Everything the agent knew — the goal, the plan, the three things it already tried — is gone, and your next session starts from zero.
+
+Your tool's own compacting or memory doesn't help here: it stays inside that one tool. When you move from Claude Code to Codex, or to Gemini, or just to a new session tomorrow, nothing travels with you.
+
+## The fix
+
+The agent keeps one plain Markdown file in your project:
+
+```
+HANDOFF.md    goal · where we stopped · next steps · decisions · what failed · repo snapshot
+```
+
+Then, in any other tool, you say:
 
 > **Read HANDOFF.md and continue.**
 
-It works with Claude Code, Codex, Gemini CLI, Antigravity, Cursor, GitHub Copilot, OpenCode, and any other tool that supports [Agent Skills](https://agentskills.io).
-
+```mermaid
+flowchart LR
+    A["context almost full"] --> H
+    B["credit finished"] --> H
+    C["you: write the handoff"] --> H
+    H["HANDOFF.md"] --> D["Codex"]
+    H --> E["Gemini / Antigravity"]
+    H --> F["Cursor · Copilot · OpenCode"]
+    H --> G["new Claude Code session"]
 ```
- Claude Code                                 Codex / Gemini / Cursor / new session
- (tokens almost finished) --> HANDOFF.md --> "Read HANDOFF.md and continue."
-```
-
-## What's in this repo
-
-| Path | What it does |
-|---|---|
-| `handoff/SKILL.md` | The skill. Tells the agent when to write the handoff, what to put in it, and how to resume from one. |
-| `handoff/scripts/snapshot.py` | Adds an automatic "Repo snapshot" to HANDOFF.md: branch, recent commits, uncommitted files. Python 3, no packages needed. |
-| `handoff/scripts/context_monitor.py` | Optional Claude Code hook: measures how full the context window is and tells Claude to write the handoff in time. |
-| `install.py` | Installs the skill for all your tools, and optionally the hook and rules. |
-| `HANDOFF.md` | A real handoff, written while building this repo. |
 
 ## Install
 
-You need Python 3 for the installer and the snapshot script (the skill itself works without it).
-
 ```bash
+git clone https://github.com/chentaymane/handoff
+cd handoff
 python install.py --hooks --rules
 ```
 
-- With no options it only copies the skill. `--hooks` and `--rules` are explained below.
-- It copies instead of linking, so run it again after you change the skill.
-- `--dry-run` shows what would change. `--uninstall` removes everything it added.
-
-Where the skill goes:
+That's it. The skill is copied to every place your agents look for skills:
 
 | Folder | Read by |
 |---|---|
-| `~/.claude/skills/handoff` | Claude Code (OpenCode reads it too) |
-| `~/.agents/skills/handoff` | Codex, Gemini CLI, Cursor, GitHub Copilot, OpenCode, Amp, Goose, and most other Agent Skills tools |
-| `~/.gemini/config/skills/handoff` | Antigravity (IDE, app and CLI), only if `~/.gemini` exists |
+| `~/.claude/skills/handoff` | Claude Code (OpenCode too) |
+| `~/.agents/skills/handoff` | Codex, Gemini CLI, Cursor, GitHub Copilot, OpenCode, Amp, Goose |
+| `~/.gemini/config/skills/handoff` | Antigravity (IDE, app and CLI) |
 
-Want it in one project only? Copy the `handoff` folder to `<project>/.agents/skills/handoff` (Codex, Gemini CLI, Antigravity, Cursor, Copilot, OpenCode) and `<project>/.claude/skills/handoff` (Claude Code).
+| Option | What it adds |
+|---|---|
+| `--hooks` | The Claude Code hook that warns when the context is filling up |
+| `--window 1000000` | Tell the hook your context window is 1M instead of 200K |
+| `--rules` | Two lines in `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md` and `~/.config/opencode/AGENTS.md`, so agents look for `HANDOFF.md` when a session starts |
+| `--dry-run` | Show what would change, change nothing |
+| `--uninstall` | Remove all of it (your own settings are restored untouched) |
 
-### `--hooks`: automatic warning in Claude Code
-
-An agent can't always see how full its context is. In Claude Code this hook measures it after every tool call and every message you send, and tells Claude what to do:
-
-- at **60%** full: write HANDOFF.md at the next natural pause
-- at **75%** full: write HANDOFF.md now, before anything else
-- right after **auto-compaction**: re-read HANDOFF.md (or write one while the summary is fresh)
-- at **session start**: if the project has an unfinished HANDOFF.md, Claude is told it exists
-
-Using 1M-context models? Install with `--window 1000000`. Otherwise the first warnings come too early (at 120K and 150K tokens) until usage passes 200K and the hook switches to 1M by itself.
-
-Settings are environment variables; you can put them in the `env` block of `~/.claude/settings.json`: `HANDOFF_CONTEXT_WINDOW` (default 200000), `HANDOFF_SOFT_PCT` (60), `HANDOFF_URGENT_PCT` (75).
-
-The hook adds about 0.3 s per tool call on Windows (Python start-up). If that bothers you, delete its `PostToolUse` entry in `~/.claude/settings.json`; you still get the check each time you send a message.
-
-Why only Claude Code? Codex hooks are experimental and don't run on Windows, and Gemini CLI's `PreCompress` hook can't send a message to the model. In the other tools the skill still works: when the agent sees a warning, at milestones, and when you ask.
-
-### `--rules`: tell every agent to look for HANDOFF.md
-
-Adds this rule to the global instructions file of each tool you have (`~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md`, `~/.config/opencode/AGENTS.md`):
-
-> - At the start of a session, if the project root has a HANDOFF.md whose Status is not Done, read it before starting work and offer to continue from its "Next steps".
-> - When the context window or usage budget is running low, when the user is about to switch tools, and at milestones of long tasks, write or update HANDOFF.md with the `handoff` skill.
-
-Cursor and Copilot have no global instructions file: paste the same two lines into Cursor Settings > Rules > User Rules, and into a project's `AGENTS.md` for Copilot.
+The skill is **copied**, not linked, so run the installer again after you change it. For one project only, copy the `handoff` folder to `<project>/.agents/skills/handoff` or `<project>/.claude/skills/handoff`.
 
 ## Use it
 
@@ -80,34 +81,98 @@ Cursor and Copilot have no global instructions file: paste the same two lines in
 | GitHub Copilot | `/handoff` |
 | Gemini CLI, Antigravity, Cursor, OpenCode, others | "write the handoff" |
 
-To continue in any tool: open the project and say **"Read HANDOFF.md and continue."**
+To continue anywhere: open the project and say **"Read HANDOFF.md and continue."** The agent reads the file, checks it against the real repo with `git status`, tells you in two lines where things stand, and carries on from "Next steps".
 
-You don't always have to ask. The agent writes or updates HANDOFF.md by itself when:
+You don't always have to ask. The agent writes or updates the file by itself when:
 
-- it sees the budget running low (a token counter, a context or usage warning, or the Claude Code hook);
-- it finishes a milestone of a long task (a checkpoint, in case the session stops suddenly);
-- it is about to stop with the work unfinished.
+- **it sees the budget running low** — a token counter, a context or usage warning, or the Claude Code hook;
+- **it finishes a milestone** of a long task — a checkpoint, in case the session dies without warning;
+- **it stops with work unfinished.**
 
-## What goes in HANDOFF.md
+## Which tool does what
 
-It is written for an agent that knows nothing about your conversation:
+Being honest about it: only Claude Code can *measure* its remaining context, because only it has hooks that can talk to the model. Everywhere else the skill still works — it triggers on warnings the agent can see, on milestones, and when you ask.
 
-1. **Goal**: what we are building and what "done" means
-2. **Where we stopped**: the exact file, command, error, and half-finished edits
-3. **Next steps**: ordered, concrete actions
-4. **Done so far**, **Decisions and constraints**, **Tried and failed / gotchas**, **Key files**, **How to run and verify**, **Open questions**
-5. **Repo snapshot**: added automatically by `snapshot.py`
+| Tool | Skill works | Automatic context warning | Looks for HANDOFF.md at startup |
+|---|---|---|---|
+| Claude Code | yes | **yes** — hook at 60% and 75% | yes (hook) |
+| Codex | yes | no — hooks are experimental and don't run on Windows | yes, with `--rules` |
+| Gemini CLI | yes | no — its `PreCompress` hook can't send a message to the model | yes, with `--rules` |
+| Antigravity | yes | no | yes, with `--rules` |
+| OpenCode | yes | no | yes, with `--rules` |
+| Cursor | yes | no | add the two lines to Settings → Rules → User Rules |
+| GitHub Copilot | yes | no | add the two lines to a project `AGENTS.md` |
 
-The full template is in [handoff/SKILL.md](handoff/SKILL.md), and [HANDOFF.md](HANDOFF.md) is a real example.
+### What about credit limits and expired sessions?
 
-## Good to know
+No tool tells the model "your credit is about to finish" or "this session is about to expire" — the agent genuinely cannot see it coming. So the protection is different: **checkpoints**. The skill writes the handoff at every milestone of a long task, so whatever happens, your `HANDOFF.md` is at most one milestone old. And when *you* see a limit warning on your screen, one sentence is enough: "write the handoff".
 
-- **Usage limits give no warning.** A message like "5-hour limit reached" can stop a session at any moment, and the agent can't see it coming. That's why the skill writes checkpoints at milestones: your handoff is never more than one milestone old. If you know you are close to a limit, just say "write the handoff".
-- **One file per project.** Each session updates the same HANDOFF.md instead of adding new ones.
-- **Not committed automatically.** Commit HANDOFF.md if you want to continue on another computer.
-- **No secrets.** The skill tells agents never to write keys or passwords into it, and the snapshot removes credentials from remote URLs.
+## What's in HANDOFF.md
 
-## Uninstall
+It is written for an agent that has never seen your conversation: exact file paths, commands, and error messages copied word for word — no "as we discussed".
+
+| Section | What it holds |
+|---|---|
+| **Goal** | What we're building and what "done" means |
+| **Where we stopped** | The exact file, command, error, and any half-finished edit |
+| **Next steps** | Ordered actions, the first one ready to run |
+| **Done so far** | What's finished and how it was checked |
+| **Decisions and constraints** | Choices and their reasons, so nobody undoes them |
+| **Tried and failed / gotchas** | Dead ends, so nobody repeats them |
+| **Key files** · **How to run and verify** · **Open questions** | The rest of what a newcomer needs |
+| **Repo snapshot** | Branch, recent commits and uncommitted files, added automatically |
+
+<details>
+<summary>See a real example</summary>
+
+[HANDOFF.md](HANDOFF.md) in this repo is not a sample — it's the handoff written while building this skill, by the agent that built it.
+
+</details>
+
+## The Claude Code hook
+
+`handoff/scripts/context_monitor.py` reads how many tokens your session is using and speaks to Claude at the right moment:
+
+| When | What Claude is told |
+|---|---|
+| 60% full | Write HANDOFF.md at the next natural pause |
+| 75% full | Write HANDOFF.md now, before anything else |
+| after auto-compaction | Re-read HANDOFF.md, details may have been summarized away |
+| session start | This project has an unfinished HANDOFF.md |
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `HANDOFF_CONTEXT_WINDOW` | `200000` | Your context window. It switches to 1M by itself once usage passes 200K |
+| `HANDOFF_SOFT_PCT` | `60` | First reminder |
+| `HANDOFF_URGENT_PCT` | `75` | Urgent reminder |
+
+Put them in the `env` block of `~/.claude/settings.json`. The hook costs about 0.3 s per tool call on Windows (Python start-up); if you'd rather not pay that, delete its `PostToolUse` entry and keep the check that runs when you send a message.
+
+## What's in this repo
+
+```
+handoff/
+  SKILL.md                     the skill: when to write, what to write, how to resume
+  scripts/snapshot.py          adds the repo snapshot into HANDOFF.md
+  scripts/context_monitor.py   Claude Code hook
+install.py                     installer for every tool
+assets/logo.svg
+HANDOFF.md                     a real handoff (this project's own)
+```
+
+## Questions
+
+**Does it overwrite my project's README?** Never. The file is always `HANDOFF.md`.
+
+**Is HANDOFF.md committed?** Not by itself — the agent asks you first. Commit it when you want to continue on another computer.
+
+**Can it leak my secrets?** The skill is told never to write keys, tokens or passwords into the file, and the snapshot removes passwords from git remote URLs.
+
+**One file per project or many?** One. Each session updates the same file instead of piling up new ones.
+
+**Do I need Python?** Only for the installer, the snapshot script and the hook. The skill itself is just Markdown and works without it.
+
+**How do I remove everything?**
 
 ```bash
 python install.py --uninstall

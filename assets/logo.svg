@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="handoff logo">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#0d9488"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="256" height="256" rx="56" fill="url(#bg)"/>
+
+  <!-- the pass: an arc from one tool to the next -->
+  <path d="M52 96 Q128 26 204 96" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity="0.95"/>
+  <polygon points="212,104 191,101 206,83" fill="#ffffff" opacity="0.95"/>
+
+  <!-- the handoff file -->
+  <g transform="rotate(-5 128 158)">
+    <rect x="80" y="104" width="96" height="112" rx="12" fill="#ffffff"/>
+    <rect x="96" y="126" width="64" height="9" rx="4.5" fill="#6366f1"/>
+    <rect x="96" y="148" width="48" height="9" rx="4.5" fill="#cbd5e1"/>
+    <rect x="96" y="170" width="56" height="9" rx="4.5" fill="#cbd5e1"/>
+    <rect x="96" y="192" width="36" height="9" rx="4.5" fill="#0d9488"/>
+  </g>
+</svg>
