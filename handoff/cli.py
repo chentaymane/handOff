@@ -137,7 +137,7 @@ def cmd_start(args):
         print(f"The watcher did not stay up. Try `handoff watch` to see why, or check {system.LOG_FILE}")
         return 1
     print(f"Watcher running in the background (pid {running}).")
-    print(f"It keeps HANDOFF.md current in every folder where {sources.LABELS} is working.")
+    print("It keeps HANDOFF.md current in every project where one of your agents is working.")
     print(f"Log: {system.LOG_FILE}")
     return 0
 
