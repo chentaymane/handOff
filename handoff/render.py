@@ -196,12 +196,14 @@ def build_section(session, root):
             label = one_line(step, 200)
             if status == "in_progress":
                 label = f"**{label}** _(in progress)_"
+            elif status == "cancelled":
+                label = f"~~{label}~~ _(cancelled)_"
             out.append(f"- [{'x' if status == 'completed' else ' '}] {label}")
         if session.plan_note:
             out += ["", quote(session.plan_note, 500)]
 
     out += ["", "### Next steps"]
-    remaining = [step for step, status in session.plan if status != "completed"]
+    remaining = [step for step, status in session.plan if status not in ("completed", "cancelled")]
     if remaining:
         out += [f"{number}. {one_line(step, 200)}" for number, step in enumerate(remaining, 1)]
     else:

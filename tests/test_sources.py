@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest import mock
 
 from handoff import sources
+from handoff.sources import claude, codex
 
 WORK = r"C:\work\shop" if os.name == "nt" else "/work/shop"
 T0 = "2026-09-16T10:00:00.000Z"
@@ -93,7 +94,7 @@ class TempFolder(unittest.TestCase):
 class ClaudeTest(TempFolder):
     def setUp(self):
         super().setUp()
-        self.session = sources.read_claude(jsonl(self.folder / "one.jsonl", CLAUDE_LOG))
+        self.session = claude.read(jsonl(self.folder / "one.jsonl", CLAUDE_LOG))
 
     def test_user_requests_skip_injected_and_system_text(self):
         self.assertEqual(self.session.asks, ["Build a login page with email and password",
@@ -122,13 +123,13 @@ class ClaudeTest(TempFolder):
 
     def test_compaction_resets_context(self):
         path = jsonl(self.folder / "two.jsonl", CLAUDE_LOG + [{"type": "system", "subtype": "compact_boundary"}])
-        self.assertEqual(sources.read_claude(path).context_tokens, 0)
+        self.assertEqual(claude.read(path).context_tokens, 0)
 
 
 class CodexTest(TempFolder):
     def setUp(self):
         super().setUp()
-        self.session = sources.read_codex(jsonl(self.folder / "rollout.jsonl", CODEX_LOG))
+        self.session = codex.read(jsonl(self.folder / "rollout.jsonl", CODEX_LOG))
 
     def test_folder_model_request_and_reply(self):
         self.assertEqual((self.session.cwd, self.session.model), (WORK, "gpt-5.5"))
@@ -139,7 +140,7 @@ class CodexTest(TempFolder):
         ide = {"timestamp": T0, "type": "event_msg", "payload": {
             "type": "user_message",
             "message": "# Context from my IDE setup:\n\n## Open tabs:\n- a.js\n\n## My request for Codex:\nFix the upload bug"}}
-        session = sources.read_codex(jsonl(self.folder / "ide.jsonl", CODEX_LOG + [ide]))
+        session = codex.read(jsonl(self.folder / "ide.jsonl", CODEX_LOG + [ide]))
         self.assertEqual(session.asks[-1], "Fix the upload bug")
 
     def test_plan_with_explanation(self):
@@ -152,7 +153,7 @@ class CodexTest(TempFolder):
 
     def test_files_fall_back_to_patch_text(self):
         log = [entry for entry in CODEX_LOG if entry["payload"].get("type") != "patch_apply_end"]
-        self.assertEqual(sources.read_codex(jsonl(self.folder / "b.jsonl", log)).files, {"src/upload.js": "edited"})
+        self.assertEqual(codex.read(jsonl(self.folder / "b.jsonl", log)).files, {"src/upload.js": "edited"})
 
     def test_commands_and_failures(self):
         self.assertEqual(self.session.commands, ["git status"])
@@ -170,24 +171,33 @@ class CodexTest(TempFolder):
             "type": "token_count", "info": None,
             "rate_limits": {"primary": {"used_percent": 100.0, "window_minutes": 300},
                             "rate_limit_reached_type": "primary"}}}
-        session = sources.read_codex(jsonl(self.folder / "c.jsonl", CODEX_LOG + [reached]))
+        session = codex.read(jsonl(self.folder / "c.jsonl", CODEX_LOG + [reached]))
         self.assertTrue(session.limit_hit)
         self.assertEqual((session.limit_percent, session.limit_window), (100.0, "5-hour"))
         self.assertEqual(session.context_tokens, 103000)
 
 
 class DiscoveryTest(TempFolder):
-    def test_finds_both_tools_newest_first(self):
+    def test_finds_logs_newest_first(self):
         claude_dir, codex_dir, day = self.folder / "claude", self.folder / "codex", date.today()
         old = jsonl(claude_dir / "C--work-shop" / "one.jsonl", CLAUDE_LOG)
         new = jsonl(codex_dir / f"{day:%Y}" / f"{day:%m}" / f"{day:%d}" / "rollout-1.jsonl", CODEX_LOG)
         os.utime(old, (time.time() - 100, time.time() - 100))
-        with mock.patch.object(sources, "CLAUDE_PROJECTS", claude_dir), \
-                mock.patch.object(sources, "CODEX_SESSIONS", codex_dir):
+        with mock.patch.object(claude, "ROOT", claude_dir), mock.patch.object(codex, "ROOT", codex_dir), \
+                mock.patch.dict(sources.MODULES, {"claude": claude, "codex": codex}, clear=True):
             found = sources.transcripts(24)
-        self.assertEqual([(tool, path) for tool, path, _ in found], [("codex", new), ("claude", old)])
-        self.assertEqual(sources.session_cwd("claude", old), WORK)
-        self.assertEqual(sources.session_cwd("codex", new), WORK)
+        self.assertEqual([(tool, ref) for tool, ref, _ in found], [("codex", str(new)), ("claude", str(old))])
+        self.assertEqual(sources.session_cwd("claude", str(old)), WORK)
+        self.assertEqual(sources.session_cwd("codex", str(new)), WORK)
+
+    def test_detects_the_agent_behind_a_log(self):
+        claude_log = jsonl(self.folder / "c.jsonl", CLAUDE_LOG)
+        codex_log = jsonl(self.folder / "rollout.jsonl", CODEX_LOG)
+        self.assertEqual(sources.detect_tool(claude_log), "claude")
+        self.assertEqual(sources.detect_tool(codex_log), "codex")
+        self.assertEqual(sources.detect_tool(self.folder / ".gemini" / "tmp" / "p" / "chats" / "session-1.jsonl"), "gemini")
+        self.assertEqual(sources.detect_tool(f"{self.folder / 'state.vscdb'}#chat"), "cursor")
+        self.assertEqual(sources.detect_tool(f"{self.folder / 'opencode.db'}#ses"), "opencode")
 
     def test_window_labels(self):
         self.assertEqual([sources.window_label(minutes) for minutes in (300, 10080, 43200, 120, None)],

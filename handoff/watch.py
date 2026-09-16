@@ -8,8 +8,8 @@ from pathlib import Path
 from . import render, sources, system
 
 POLL_SECONDS = 5
-QUIET_SECONDS = 20       # a log quiet this long means the agent finished a step: write the handoff
-REPARSE_SECONDS = 15     # while an agent is busy, re-read its log at most this often to catch alerts
+QUIET_SECONDS = 20       # a session quiet this long means the agent finished a step: write the handoff
+REPARSE_SECONDS = 15     # while an agent is busy, re-read its session at most this often to catch alerts
 LOOKBACK_HOURS = 48
 LIMIT_LEVELS = (80, 95)
 CONTEXT_LEVELS = (70, 85)
@@ -57,21 +57,15 @@ def alerts(session):
     return found
 
 
-def _mtime(path):
-    try:
-        return os.path.getmtime(path)
-    except OSError:
-        return 0
-
-
 class Watcher:
     def __init__(self, echo=print):
         self.echo = echo
         self.started = time.time()
         self.seen = {}
-        state = system.load_json(system.STATE_FILE, {})
         cutoff = time.time() - 30 * 86400
-        self.fired = {path: keys for path, keys in (state.get("alerts") or {}).items() if _mtime(path) >= cutoff}
+        saved = system.load_json(system.STATE_FILE, {}).get("alerts") or {}
+        self.fired = {ref: entry for ref, entry in saved.items()
+                      if isinstance(entry, dict) and entry.get("at", 0) >= cutoff}
 
     def say(self, message):
         system.log(message)
@@ -83,12 +77,12 @@ class Watcher:
             self.say(f"another watcher is already running (pid {other})")
             return 1
         system.write_pid()
-        self.say(f"watching Claude Code and Codex sessions (pid {os.getpid()}), press Ctrl+C to stop")
+        self.say(f"watching {sources.LABELS} sessions (pid {os.getpid()}), press Ctrl+C to stop")
         try:
             while True:
                 try:
                     self.tick()
-                except Exception as exc:  # one bad log must never stop the watcher
+                except Exception as exc:  # one bad session must never stop the watcher
                     self.say(f"error: {exc!r}")
                 time.sleep(POLL_SECONDS)
         except KeyboardInterrupt:
@@ -99,28 +93,24 @@ class Watcher:
 
     def tick(self, now=None):
         now = time.time() if now is None else now
-        for tool, path, mtime in sources.transcripts(LOOKBACK_HOURS):
-            if mtime < self.started:
+        for tool, ref, stamp in sources.transcripts(LOOKBACK_HOURS):
+            if stamp < self.started:
                 break  # newest first, so everything from here on predates the watcher
-            try:
-                size = path.stat().st_size
-            except OSError:
-                continue
-            seen = self.seen.setdefault(str(path), {"size": -1, "mtime": 0.0, "parsed": 0.0, "dirty": False})
-            if (seen["size"], seen["mtime"]) != (size, mtime):
-                seen.update(size=size, mtime=mtime, dirty=True)
+            seen = self.seen.setdefault(ref, {"stamp": None, "parsed": 0.0, "dirty": False})
+            if seen["stamp"] != stamp:
+                seen.update(stamp=stamp, dirty=True)
                 if now - seen["parsed"] >= REPARSE_SECONDS:
-                    self.process(tool, path, seen, now, final=False)
-            elif seen["dirty"] and now - mtime >= QUIET_SECONDS:
-                self.process(tool, path, seen, now, final=True)
+                    self.process(tool, ref, seen, now, final=False)
+            elif seen["dirty"] and now - stamp >= QUIET_SECONDS:
+                self.process(tool, ref, seen, now, final=True)
 
-    def process(self, tool, path, seen, now, final):
+    def process(self, tool, ref, seen, now, final):
         seen["parsed"] = now
-        session = sources.read_session(tool, path)
+        session = sources.read_session(tool, ref)
         if not session or not session.cwd:
             seen["dirty"] = False
             return
-        fired = set(self.fired.get(str(path), []))
+        fired = set((self.fired.get(ref) or {}).get("keys") or [])
         fresh = [(key, title) for key, title in alerts(session) if key not in fired]
         if not final and not fresh:
             return  # still busy and nothing urgent: wait until it goes quiet
@@ -143,5 +133,5 @@ class Watcher:
             self.say(f"alert: {title} - {body}")
             fired.add(key)
         if fresh:
-            self.fired[str(path)] = sorted(fired)
+            self.fired[ref] = {"keys": sorted(fired), "at": now}
             system.save_json(system.STATE_FILE, {"alerts": self.fired})

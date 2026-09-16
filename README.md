@@ -6,11 +6,11 @@
 
 **Never lose your work when the tokens run out.**
 
-A small background app that watches your coding agents and keeps a `HANDOFF.md` in every project, so when the context fills up, the credit runs out or the session dies, any agent can pick up exactly where you stopped.
+A small background app that watches your coding agents (Claude Code, Codex, Cursor, Gemini CLI and OpenCode) and keeps a `HANDOFF.md` in every project, so when the context fills up, the credit runs out or the session dies, any agent can pick up exactly where you stopped.
 
 [![Python](https://img.shields.io/badge/python-3.8+-3776ab?style=flat-square)](https://www.python.org/)
 [![Dependencies](https://img.shields.io/badge/dependencies-none-6366f1?style=flat-square)](pyproject.toml)
-[![Reads](https://img.shields.io/badge/reads-Claude_Code,_Codex-0d9488?style=flat-square)](#what-it-reads)
+[![Reads](https://img.shields.io/badge/reads-Claude_Code,_Codex,_Cursor,_Gemini_CLI,_OpenCode-0d9488?style=flat-square)](#what-it-reads)
 [![Platforms](https://img.shields.io/badge/platforms-Windows,_macOS,_Linux-475569?style=flat-square)](#install)
 
 </div>
@@ -27,6 +27,9 @@ Prompts, rules and skills only work while the agent is alive and remembers to us
 flowchart LR
     A["Claude Code"] --> L["session logs on disk"]
     B["Codex"] --> L
+    C["Cursor"] --> L
+    D["Gemini CLI"] --> L
+    E["OpenCode"] --> L
     L --> H["handoff app"]
     H --> F["HANDOFF.md in your project"]
     H --> N["desktop alert: limit at 90%"]
@@ -37,7 +40,7 @@ flowchart LR
 
 - **Keeps `HANDOFF.md` current.** After every step an agent finishes, the file in that project is refreshed: goal, where it stopped, the agent's own plan, files changed, commands, errors, repo state.
 - **Sees the limit coming.** Codex records how much of its usage limit is used. At **80%** and **95%**, `handoff` writes the handoff immediately and shows a desktop notification, before the credit is gone.
-- **Catches the cut-off.** A usage limit that's hit, or a context window past 70% and 85%, triggers the same immediate write and alert.
+- **Catches the cut-off.** When Claude Code, Cursor, OpenCode or Gemini CLI hits a usage limit or quota, or a context window passes 70% and 85%, it writes the handoff at once and alerts you.
 - **Rescues dead sessions.** `handoff now` rebuilds the handoff from the log of a session that already ended.
 - **Stays out of your way.** It only writes its own marked section, masks API keys and passwords, and never writes into your home folder, temp folders or agent settings.
 
@@ -69,7 +72,7 @@ handoff autostart on
 | Command | What it does |
 |---|---|
 | `handoff status` | Your recent agent sessions: context used, usage limit, how old each project's HANDOFF.md is, and whether the watcher runs |
-| `handoff now` | Write HANDOFF.md for the current folder from its latest session (`--print` to only show it) |
+| `handoff now` | Write HANDOFF.md for the current folder from its latest session, whichever agent it was (`--print` to only show it) |
 | `handoff now FOLDER --from LOG` | Rebuild a handoff from one specific session log |
 | `handoff start` / `handoff stop` | Run the watcher in the background / stop it |
 | `handoff watch` | Run the watcher in this window, to see what it does |
@@ -79,23 +82,29 @@ handoff autostart on
 $ handoff status
 Watcher:    running (pid 18244)
 Autostart:  on
+Reads:      Claude Code, Codex, Gemini CLI, Cursor, OpenCode
 
-LAST ACTIVE       TOOL         CONTEXT      USAGE LIMIT  HANDOFF.md  FOLDER
-2026-09-16 15:38  Claude Code  55% of 1000K  -           1 min old   C:\Users\you\Desktop\shop-api
-2026-09-16 14:02  Codex        40% of 258K   87% 30-day  3 min old   C:\Users\you\Desktop\uploader
-2026-09-15 23:54  Claude Code  -             LIMIT HIT   5 min old   C:\Users\you\Downloads\portfolio
+LAST ACTIVE       TOOL         CONTEXT       USAGE LIMIT  HANDOFF.md  FOLDER
+2026-09-16 15:38  Claude Code  55% of 1000K  -            1 min old   C:\Users\you\Desktop\shop-api
+2026-09-16 14:02  Codex        40% of 258K   87% 30-day   3 min old   C:\Users\you\Desktop\uploader
+2026-09-16 11:20  Cursor       41% of 200K   LIMIT HIT    9 min old   C:\Users\you\Desktop\insta-bot
+2026-09-15 23:54  OpenCode     39% of 200K   -            2 h old     C:\Users\you\Desktop\scraper
 ```
 
 ## What it reads
 
-| Tool | Logs | Context | Usage limit |
+| Tool | Where | Context | Usage limit |
 |---|---|---|---|
-| **Codex** (CLI, IDE extension, app) | `~/.codex/sessions` | exact | **exact percentage and reset time** |
-| **Claude Code** (CLI, desktop, IDE) | `~/.claude/projects` | measured, window size assumed | when a limit is hit (Claude doesn't log a percentage) |
-| Cursor, Gemini CLI, OpenCode | — | planned | planned |
-| Antigravity | — | its conversations are stored in a binary format | — |
+| **Codex** (CLI, IDE extension, app) | `~/.codex/sessions` | exact | **percentage before you hit it**, with its reset time |
+| **Claude Code** (CLI, desktop, IDE) | `~/.claude/projects` | measured, window size assumed | when a limit is hit |
+| **Cursor** | `~/.cursor/projects/*/agent-transcripts` and Cursor's `state.vscdb` | exact | when a limit is hit |
+| **OpenCode** | `~/.local/share/opencode/opencode.db` | measured | when a limit is hit (HTTP 429) |
+| **Gemini CLI** | `~/.gemini/tmp/*/chats` | measured | when a quota is hit |
+| Antigravity | — | stores conversations in a binary format, not readable yet | — |
 
-For a tool it can't read yet, you can still have the agent write the handoff itself with the optional [skill](#extras).
+Only Codex writes its usage percentage into its logs, so it's the one tool where `handoff` can warn you *before* the credit runs out. For the others, the handoff is kept fresh after every step, so it's already written when the limit arrives.
+
+The Gemini CLI reader is built from Gemini CLI's source and tested with sample logs; the others were tested on real sessions.
 
 ## What HANDOFF.md looks like
 
@@ -162,6 +171,7 @@ Open the project in any agent and say **"Read HANDOFF.md and continue."**
 - It never writes into your home folder, a drive root, a temp folder or an agent's settings folder. Put an empty `.nohandoff` file in any project to keep it out.
 - It owns only the lines between `<!-- handoff:auto:start -->` and `<!-- handoff:auto:end -->`. You and your agents can write anything above or below, and it's kept.
 - It masks secrets before writing: `sk-`, `ghp_`, `AKIA`, `AIza` and `xox` keys, JWTs, `password=`-style values, and credentials in URLs.
+- It opens agent databases read-only, so it can never block or change them.
 
 Its own files live in `~/.handoff`: `handoff.log`, `state.json` and `watch.pid`. Set `HANDOFF_HOME` to put them elsewhere.
 
@@ -174,6 +184,8 @@ Its own files live in `~/.handoff`: `handoff.log`, `state.json` and `watch.pid`.
 ```bash
 python -m unittest discover -s tests -t .
 ```
+
+Each agent has one reader in `handoff/sources/` with the same three functions (`discover`, `read`, `folder`), so adding another agent means adding one file.
 
 ## Uninstall
 

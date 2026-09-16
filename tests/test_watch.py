@@ -72,8 +72,10 @@ class WatcherTest(TempFolder):
         self.log = self.base / "codex" / f"{day:%Y}" / f"{day:%m}" / f"{day:%d}" / "rollout-1.jsonl"
         self.log.parent.mkdir(parents=True)
         self.alerts = []
-        self.patch(sources, "CLAUDE_PROJECTS", self.base / "no-claude")
-        self.patch(sources, "CODEX_SESSIONS", self.base / "codex")
+        self.patch(sources.codex, "ROOT", self.base / "codex")
+        only_codex = mock.patch.dict(sources.MODULES, {"codex": sources.codex}, clear=True)
+        only_codex.start()
+        self.addCleanup(only_codex.stop)
         self.patch(system, "STATE_FILE", self.base / "state.json")
         self.patch(system, "LOG_FILE", self.base / "handoff.log")
         self.patch(system, "notify", lambda title, body: self.alerts.append(title))

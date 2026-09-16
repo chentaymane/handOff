@@ -32,15 +32,15 @@ def age(path):
 
 
 def find_session(root, days=60):
-    """The newest session whose working folder is `root` or inside it."""
+    """The newest session, from any agent, whose working folder is `root` or inside it."""
     base = os.path.normcase(str(root)).rstrip("\\/")
-    for tool, path, _ in sources.transcripts(days * 24):
-        cwd = sources.session_cwd(tool, path)
+    for tool, ref, _ in sources.transcripts(days * 24):
+        cwd = sources.session_cwd(tool, ref)
         if not cwd:
             continue
         folder = os.path.normcase(os.path.abspath(cwd)).rstrip("\\/")
         if folder == base or folder.startswith(base + os.sep):
-            return tool, path
+            return tool, ref
     return None
 
 
@@ -48,11 +48,12 @@ def cmd_status(args):
     pid = system.watcher_pid()
     print(f"Watcher:    {f'running (pid {pid})' if pid else 'not running - start it with: handoff start'}")
     print(f"Autostart:  {'on' if system.autostart_path().exists() else 'off - turn it on with: handoff autostart on'}")
+    print(f"Reads:      {sources.LABELS}")
     print(f"Log file:   {system.LOG_FILE}")
     print()
     rows = []
-    for tool, path, mtime in sources.transcripts(args.days * 24)[: args.limit]:
-        session = sources.read_session(tool, path)
+    for tool, ref, stamp in sources.transcripts(args.days * 24)[: args.limit]:
+        session = sources.read_session(tool, ref)
         if not session or not session.cwd:
             continue
         root = render.project_root(session.cwd)
@@ -64,7 +65,7 @@ def cmd_status(args):
         else:
             usage = "-"
         rows.append((
-            datetime.datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M"),
+            datetime.datetime.fromtimestamp(stamp).strftime("%Y-%m-%d %H:%M"),
             session.tool,
             f"{percent}% of {window // 1000}K" if percent is not None else "-",
             usage,
@@ -72,7 +73,7 @@ def cmd_status(args):
             str(root),
         ))
     if not rows:
-        print(f"No Claude Code or Codex sessions in the last {args.days} days.")
+        print(f"No agent sessions in the last {args.days} days.")
         return 0
     headers = ("LAST ACTIVE", "TOOL", "CONTEXT", "USAGE LIMIT", "HANDOFF.md", "FOLDER")
     widths = [max(len(headers[i]), *(len(row[i]) for row in rows)) for i in range(len(headers) - 1)]
@@ -83,11 +84,12 @@ def cmd_status(args):
 
 def cmd_now(args):
     if args.log:
-        path = Path(args.log)
-        if not path.is_file():
-            print(f"No such session log: {path}")
+        database = args.log.rpartition("#")[0] if "#" in args.log else args.log
+        if not Path(database).is_file():
+            print(f"No such session log: {args.log}")
             return 1
-        tool, folder = sources.detect_tool(path), (Path(args.folder).resolve() if args.folder else None)
+        tool, ref = sources.detect_tool(args.log), args.log
+        folder = Path(args.folder).resolve() if args.folder else None
     else:
         folder = Path(args.folder or os.getcwd()).resolve()
         if not folder.is_dir():
@@ -95,12 +97,12 @@ def cmd_now(args):
             return 1
         found = find_session(render.project_root(folder))
         if not found:
-            print(f"No Claude Code or Codex session found for {render.project_root(folder)}.")
+            print(f"No agent session found for {render.project_root(folder)}.")
             return 1
-        tool, path = found
-    session = sources.read_session(tool, path)
+        tool, ref = found
+    session = sources.read_session(tool, ref)
     if not session:
-        print(f"Could not read {path}.")
+        print(f"Could not read {ref}.")
         return 1
     folder = folder or Path(session.cwd or os.getcwd())
     root = render.project_root(folder) if folder.is_dir() else folder
@@ -116,7 +118,7 @@ def cmd_now(args):
         return 1
     changed = render.write_handoff(root, section)
     print(f"{'Wrote' if changed else 'Already up to date:'} {root / render.HANDOFF_NAME}"
-          f"  (from {session.tool}, {path.name})")
+          f"  (from {session.tool}, {Path(str(ref)).name})")
     return 0
 
 
@@ -135,7 +137,7 @@ def cmd_start(args):
         print(f"The watcher did not stay up. Try `handoff watch` to see why, or check {system.LOG_FILE}")
         return 1
     print(f"Watcher running in the background (pid {running}).")
-    print("It keeps HANDOFF.md current in every folder where Claude Code or Codex is working.")
+    print(f"It keeps HANDOFF.md current in every folder where {sources.LABELS} is working.")
     print(f"Log: {system.LOG_FILE}")
     return 0
 
@@ -168,7 +170,7 @@ def main(argv=None):
     now.add_argument("folder", nargs="?", help="project folder (default: the current folder)")
     now.add_argument("--print", action="store_true", help="show the handoff instead of writing it")
     now.add_argument("--from", dest="log", metavar="LOG",
-                     help="build it from this session log instead of the folder's latest session")
+                     help="build it from this session log (or DATABASE#ID) instead of the folder's latest session")
     commands.add_parser("watch", help="run the watcher in this window (Ctrl+C to stop)")
     commands.add_parser("start", help="run the watcher in the background")
     commands.add_parser("stop", help="stop the background watcher")
