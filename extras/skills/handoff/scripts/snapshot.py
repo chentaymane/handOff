@@ -24,6 +24,7 @@ from pathlib import Path
 
 START = "<!-- handoff:snapshot:start -->"
 END = "<!-- handoff:snapshot:end -->"
+BLOCK = re.compile(r"^" + re.escape(START) + r"[ \t]*\n.*?^" + re.escape(END) + r"[ \t]*$", re.M | re.S)
 MAX_STATUS_LINES = 40
 MAX_RECENT_FILES = 15
 MAX_WALK_FILES = 20000
@@ -177,9 +178,9 @@ def read_text(path):
 
 def write_block(path, block):
     text, crlf = read_text(path) if path.exists() else (STUB, False)
-    start, end = text.find(START), text.find(END)
-    if start != -1 and end > start:
-        text = text[:start] + block + text[end + len(END):]
+    match = BLOCK.search(text)  # markers count only on their own line, so notes mentioning them stay intact
+    if match:
+        text = text[:match.start()] + block + text[match.end():]
     else:
         text = text.rstrip("\n") + "\n\n" + block + "\n"
     if not text.endswith("\n"):

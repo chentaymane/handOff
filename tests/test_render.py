@@ -97,6 +97,18 @@ class WriteTest(TempFolder):
         self.assertIn("> Something new.", text)
         self.assertEqual(text.count(render.START), 1)
 
+    def test_notes_that_mention_the_markers_stay_intact(self):
+        notes = f"# Notes\n\nThe app owns the part between `{render.START}` and `{render.END}`.\n\nMore notes.\n"
+        self.path.write_text(notes, encoding="utf-8")
+        for reply in ("First.", "Second."):
+            self.session.agent_last = reply
+            render.write_handoff(self.root, self.section())
+        text = self.path.read_text(encoding="utf-8")
+        self.assertTrue(text.startswith(notes.rstrip("\n")))
+        self.assertEqual(text.count("## Auto handoff"), 1)
+        self.assertIn("> Second.", text)
+        self.assertNotIn("> First.", text)
+
     def test_timestamp_alone_does_not_rewrite(self):
         render.write_handoff(self.root, self.section())
         self.assertFalse(render.write_handoff(self.root, render.STAMP.sub("_Last update: later_", self.section())))

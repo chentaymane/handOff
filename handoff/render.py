@@ -4,11 +4,14 @@ import datetime
 import os
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 
 HANDOFF_NAME = "HANDOFF.md"
 START = "<!-- handoff:auto:start -->"
 END = "<!-- handoff:auto:end -->"
+# The markers only count on a line of their own, so a HANDOFF.md that merely mentions them stays intact.
+BLOCK = re.compile(r"^" + re.escape(START) + r"[ \t]*\n.*?^" + re.escape(END) + r"[ \t]*$", re.M | re.S)
 STAMP = re.compile(r"^_Last update: .*$", re.M)
 APP_URL = "https://github.com/chentaymane/handoff"
 AGENT_DIRS = (".claude", ".codex", ".gemini", ".cursor", ".copilot", ".handoff")  # agents' own files, not projects
@@ -79,24 +82,26 @@ def context_percent(session):
     return round(session.context_tokens * 100 / window), window
 
 
+def _inside(path, folder):
+    return os.path.normcase(os.path.abspath(path)).startswith(os.path.normcase(str(folder)).rstrip("\\/") + os.sep)
+
+
 def relative(path, root):
     path = str(path)
     if not os.path.isabs(path):
         return path.replace("\\", "/")
-    base = str(root).rstrip("\\/")
-    if os.path.normcase(os.path.abspath(path)).startswith(os.path.normcase(base) + os.sep):
-        return os.path.abspath(path)[len(base) + 1:].replace("\\", "/")
+    if _inside(path, root):
+        return os.path.abspath(path)[len(str(root).rstrip("\\/")) + 1:].replace("\\", "/")
     return path
 
 
-def agent_file(path):
-    """True for files agents keep for themselves (memory, settings) rather than project files."""
+def private_file(path, root):
+    """Files that aren't the project's: agents' own memory and settings, or temp files outside the project."""
     path = str(path)
-    if not os.path.isabs(path):
+    if not os.path.isabs(path) or _inside(path, root):
         return False
-    full = os.path.normcase(os.path.abspath(path))
-    home = os.path.normcase(str(Path.home()))
-    return any(full.startswith(os.path.join(home, name) + os.sep) for name in AGENT_DIRS)
+    folders = [Path.home() / name for name in AGENT_DIRS] + [Path(tempfile.gettempdir())]
+    return any(_inside(path, folder) for folder in folders)
 
 
 # ---- git ---------------------------------------------------------------------------
@@ -203,7 +208,7 @@ def build_section(session, root):
         out += ["1. Read \"Where we stopped\" and finish anything it left open.",
                 "2. Run `git status` to find uncommitted or half-finished edits before starting new work."]
 
-    files = [(path, kind) for path, kind in session.files.items() if not agent_file(path)]
+    files = [(path, kind) for path, kind in session.files.items() if not private_file(path, root)]
     if files:
         out += ["", "### Files changed in this session"]
         if len(files) > MAX_FILES:
@@ -263,9 +268,9 @@ def write_handoff(root, section):
     path = Path(root) / HANDOFF_NAME
     exists = path.exists()
     text, crlf = read_text(path) if exists else (header(root), False)
-    start, end = text.find(START), text.find(END)
-    if start != -1 and end > start:
-        new = text[:start] + section + text[end + len(END):]
+    match = BLOCK.search(text)
+    if match:
+        new = text[:match.start()] + section + text[match.end():]
     else:
         new = text.rstrip("\n") + "\n\n" + section + "\n"
     if not new.endswith("\n"):
