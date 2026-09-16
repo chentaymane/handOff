@@ -6,192 +6,181 @@
 
 **Never lose your work when the tokens run out.**
 
-One skill for every coding agent. It writes a `HANDOFF.md` that any other agent can pick up.
+A small background app that watches your coding agents and keeps a `HANDOFF.md` in every project, so when the context fills up, the credit runs out or the session dies, any agent can pick up exactly where you stopped.
 
-[![Agent Skills](https://img.shields.io/badge/Agent_Skills-compatible-6366f1?style=flat-square)](https://agentskills.io)
-[![Works with](https://img.shields.io/badge/works_with-Claude_Code,_Codex,_Gemini,_Antigravity,_Cursor,_Copilot,_OpenCode-0d9488?style=flat-square)](#which-tool-does-what)
 [![Python](https://img.shields.io/badge/python-3.8+-3776ab?style=flat-square)](https://www.python.org/)
+[![Dependencies](https://img.shields.io/badge/dependencies-none-6366f1?style=flat-square)](pyproject.toml)
+[![Reads](https://img.shields.io/badge/reads-Claude_Code,_Codex-0d9488?style=flat-square)](#what-it-reads)
 [![Platforms](https://img.shields.io/badge/platforms-Windows,_macOS,_Linux-475569?style=flat-square)](#install)
 
 </div>
 
 ---
 
-## The problem
+## Why an app
 
-Your context window fills up. Your credit runs out. The session expires. Everything the agent knew — the goal, the plan, the three things it already tried — is gone, and your next session starts from zero.
+Prompts, rules and skills only work while the agent is alive and remembers to use them. When your credit runs out, the agent is already gone, and so is everything it knew.
 
-Your tool's own compacting or memory doesn't help here: it stays inside that one tool. When you move from Claude Code to Codex, or to Gemini, or just to a new session tomorrow, nothing travels with you.
-
-## The fix
-
-The agent keeps one plain Markdown file **in the folder you are working in**:
-
-```
-HANDOFF.md    goal · where we stopped · next steps · decisions · what failed · repo snapshot
-```
-
-Then, in any other tool, you say:
-
-> **Read HANDOFF.md and continue.**
+`handoff` doesn't ask the agent for anything. Every coding agent already saves its conversation to disk as it works. `handoff` reads those logs **from the outside** and writes the handoff itself, which is why it still works after the session has died.
 
 ```mermaid
 flowchart LR
-    A["context almost full"] --> H
-    B["credit limit hit"] --> H
-    C["every 30 min of work"] --> H
-    D["you: write the handoff"] --> H
-    H["HANDOFF.md"] --> E["Codex"]
-    H --> F["Gemini / Antigravity"]
-    H --> G["Cursor · Copilot · OpenCode"]
-    H --> I["new Claude Code session"]
+    A["Claude Code"] --> L["session logs on disk"]
+    B["Codex"] --> L
+    L --> H["handoff app"]
+    H --> F["HANDOFF.md in your project"]
+    H --> N["desktop alert: limit at 90%"]
+    F --> X["any agent: Read HANDOFF.md and continue"]
 ```
 
+## What it does
+
+- **Keeps `HANDOFF.md` current.** After every step an agent finishes, the file in that project is refreshed: goal, where it stopped, the agent's own plan, files changed, commands, errors, repo state.
+- **Sees the limit coming.** Codex records how much of its usage limit is used. At **80%** and **95%**, `handoff` writes the handoff immediately and shows a desktop notification, before the credit is gone.
+- **Catches the cut-off.** A usage limit that's hit, or a context window past 70% and 85%, triggers the same immediate write and alert.
+- **Rescues dead sessions.** `handoff now` rebuilds the handoff from the log of a session that already ended.
+- **Stays out of your way.** It only writes its own marked section, masks API keys and passwords, and never writes into your home folder, temp folders or agent settings.
+
 ## Install
+
+Python 3.8 or newer. Nothing else.
 
 ```bash
 git clone https://github.com/chentaymane/handoff
 cd handoff
-python install.py --hooks --rules
+python -m handoff status
 ```
 
-That's it. The skill is copied to every place your agents look for skills:
+That already works from the folder. To get a `handoff` command you can run anywhere:
 
-| Folder | Read by |
+```bash
+pip install .
+```
+
+Then start it once, and have it start by itself from now on:
+
+```bash
+handoff start
+handoff autostart on
+```
+
+## Commands
+
+| Command | What it does |
 |---|---|
-| `~/.claude/skills/handoff` | Claude Code (OpenCode too) |
-| `~/.agents/skills/handoff` | Codex, Gemini CLI, Cursor, GitHub Copilot, OpenCode, Amp, Goose |
-| `~/.gemini/config/skills/handoff` | Antigravity (IDE, app and CLI) |
+| `handoff status` | Your recent agent sessions: context used, usage limit, how old each project's HANDOFF.md is, and whether the watcher runs |
+| `handoff now` | Write HANDOFF.md for the current folder from its latest session (`--print` to only show it) |
+| `handoff now FOLDER --from LOG` | Rebuild a handoff from one specific session log |
+| `handoff start` / `handoff stop` | Run the watcher in the background / stop it |
+| `handoff watch` | Run the watcher in this window, to see what it does |
+| `handoff autostart on` / `off` | Start the watcher when you log in |
 
-| Option | What it adds |
-|---|---|
-| `--hooks` | The Claude Code hook: context warnings, credit-limit alerts, 30-minute checkpoints |
-| `--window 1000000` | Tell the hook your context window is 1M instead of 200K |
-| `--rules` | Two lines in `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.gemini/GEMINI.md` and `~/.config/opencode/AGENTS.md`, so agents look for `HANDOFF.md` when a session starts |
-| `--dry-run` | Show what would change, change nothing |
-| `--uninstall` | Remove all of it (your own settings are restored untouched) |
+```
+$ handoff status
+Watcher:    running (pid 18244)
+Autostart:  on
 
-The skill is **copied**, not linked, so run the installer again after you change it. For one project only, copy the `handoff` folder to `<project>/.agents/skills/handoff` or `<project>/.claude/skills/handoff`.
+LAST ACTIVE       TOOL         CONTEXT      USAGE LIMIT  HANDOFF.md  FOLDER
+2026-09-16 15:38  Claude Code  55% of 1000K  -           1 min old   C:\Users\you\Desktop\shop-api
+2026-09-16 14:02  Codex        40% of 258K   87% 30-day  3 min old   C:\Users\you\Desktop\uploader
+2026-09-15 23:54  Claude Code  -             LIMIT HIT   5 min old   C:\Users\you\Downloads\portfolio
+```
 
-## Use it
+## What it reads
 
-| Tool | Ask for a handoff |
-|---|---|
-| Claude Code | `/handoff` |
-| Codex | `$handoff` |
-| GitHub Copilot | `/handoff` |
-| Gemini CLI, Antigravity, Cursor, OpenCode, others | "write the handoff" |
-
-To continue anywhere: open the project and say **"Read HANDOFF.md and continue."** The agent reads the file, checks it against the real repo with `git status`, tells you in two lines where things stand, and carries on from "Next steps".
-
-You don't always have to ask. The agent writes or updates the file by itself when:
-
-- **the budget is running low** — a token counter, a context or usage warning, or the Claude Code hook;
-- **a request just failed on a usage or credit limit** — then it writes immediately, because the next request may not go through;
-- **it finishes a milestone**, or ~30 minutes of work have passed since the last update;
-- **it stops with work unfinished.**
-
-## Which tool does what
-
-Being honest about it: only Claude Code can *measure* its own situation, because only it has hooks that can talk to the model. Everywhere else the skill still works — it triggers on warnings the agent can see, on milestones, and when you ask.
-
-| Tool | Skill works | Automatic warnings | Looks for HANDOFF.md at startup |
+| Tool | Logs | Context | Usage limit |
 |---|---|---|---|
-| Claude Code | yes | **yes** — context 60% / 75%, credit limits, 30-min checkpoints | yes (hook) |
-| Codex | yes | no — hooks are experimental and don't run on Windows | yes, with `--rules` |
-| Gemini CLI | yes | no — its `PreCompress` hook can't send a message to the model | yes, with `--rules` |
-| Antigravity | yes | no | yes, with `--rules` |
-| OpenCode | yes | no | yes, with `--rules` |
-| Cursor | yes | no | add the two lines to Settings → Rules → User Rules |
-| GitHub Copilot | yes | no | add the two lines to a project `AGENTS.md` |
+| **Codex** (CLI, IDE extension, app) | `~/.codex/sessions` | exact | **exact percentage and reset time** |
+| **Claude Code** (CLI, desktop, IDE) | `~/.claude/projects` | measured, window size assumed | when a limit is hit (Claude doesn't log a percentage) |
+| Cursor, Gemini CLI, OpenCode | — | planned | planned |
+| Antigravity | — | its conversations are stored in a binary format | — |
 
-### What about credit limits and expired sessions?
+For a tool it can't read yet, you can still have the agent write the handoff itself with the optional [skill](#extras).
 
-No tool warns the model *before* your credit runs out or a session expires — the agent genuinely cannot see it coming. So this is handled from three sides:
-
-1. **Checkpoints.** Every ~30 minutes of real work, the hook asks Claude to refresh `HANDOFF.md` in your working folder. Whatever happens next, the file is at most that old. (`HANDOFF_CHECKPOINT_MIN`, `0` turns it off.)
-2. **The moment a limit bites.** A usage or credit limit leaves a `rate_limit` error in the session transcript. The hook spots it and tells Claude to write the handoff before anything else, while it still can.
-3. **Recovery, if nothing was written.** The conversation is still on disk. From the project folder:
-
-   ```bash
-   python ~/.claude/skills/handoff/scripts/recover.py
-   ```
-
-   It prints a short digest of the dead session — what you asked for, what was done, which errors hit, whether it ended on a credit limit — and any agent can turn that into a proper `HANDOFF.md`. Add `--list` to pick a different session.
-
-## What's in HANDOFF.md
-
-It is written for an agent that has never seen your conversation: exact file paths, commands, and error messages copied word for word — no "as we discussed".
-
-| Section | What it holds |
-|---|---|
-| **Goal** | What we're building and what "done" means |
-| **Where we stopped** | The exact file, command, error, and any half-finished edit |
-| **Next steps** | Ordered actions, the first one ready to run |
-| **Done so far** | What's finished and how it was checked |
-| **Decisions and constraints** | Choices and their reasons, so nobody undoes them |
-| **Tried and failed / gotchas** | Dead ends, so nobody repeats them |
-| **Key files** · **How to run and verify** · **Open questions** | The rest of what a newcomer needs |
-| **Repo snapshot** | Branch, recent commits and uncommitted files, added automatically |
+## What HANDOFF.md looks like
 
 <details>
-<summary>See a real example</summary>
+<summary>An example from a Codex session at 91% of its usage limit</summary>
 
-[HANDOFF.md](HANDOFF.md) in this repo is not a sample — it's the handoff written while building this skill, by the agent that built it.
+```markdown
+# HANDOFF: shop-api
+
+> **Next agent:** read this file, check it against the repo with `git status`, then continue
+> from "Next steps". The section below is updated automatically from the latest coding session
+> in this folder; notes added outside it are kept.
+
+<!-- handoff:auto:start -->
+## Auto handoff
+
+_Last update: 2026-09-16 15:42 +0100, from a **Codex** session (gpt-5.5)._
+
+**Heads-up:** 91% of the usage limit is used.
+
+### Goal
+> Add Stripe checkout to the cart page and email a receipt after payment
+
+### Where we stopped
+> Checkout works end to end in test mode. The receipt email is wired up,
+> but the template still has placeholder text.
+
+### Plan
+- [x] Create the checkout session endpoint
+- [x] Redirect the cart page to Stripe
+- [ ] **Send the receipt email** _(in progress)_
+- [ ] Handle failed payments
+
+### Next steps
+1. Send the receipt email
+2. Handle failed payments
+
+### Files changed in this session
+- `src/routes/checkout.ts` - added
+- `src/pages/cart.tsx` - edited
+- `src/emails/receipt.html` - added
+
+### Session
+- **Tool:** Codex (gpt-5.5), 48 tool calls
+- **Context:** ~142K of 258K tokens (55%)
+- **Usage limit:** 91% used of the 5-hour window, resets 2026-09-16 17:30
+
+### Repo
+- **Branch:** `feature/checkout` @ `4be21c9` - Add checkout session endpoint
+- **Uncommitted:** 3 changed, 1 untracked
+<!-- handoff:auto:end -->
+```
 
 </details>
 
-## The Claude Code hook
+Open the project in any agent and say **"Read HANDOFF.md and continue."**
 
-`handoff/scripts/context_monitor.py` watches the session and speaks to Claude at the right moment:
+## How it decides
 
-| When | What Claude is told |
-|---|---|
-| context 60% full | Write HANDOFF.md at the next natural pause |
-| context 75% full | Write HANDOFF.md now, before anything else |
-| a `rate_limit` error appears | A usage or credit limit hit — write the handoff immediately |
-| 30 minutes since the last update | Refresh "Where we stopped" and "Next steps" |
-| after auto-compaction | Re-read HANDOFF.md, details may have been summarized away |
-| session start | This project has an unfinished HANDOFF.md |
+- It checks the logs every 5 seconds and only acts on sessions that are active **after** it started, so it never fills old projects with files.
+- It writes once an agent has been quiet for 20 seconds (a step just finished), so the file is at most one step behind.
+- It writes immediately, and alerts once per level, when a usage limit or the context window crosses a threshold.
+- It only writes for real work: at least one changed file, three commands, or two requests.
+- It never writes into your home folder, a drive root, a temp folder or an agent's settings folder. Put an empty `.nohandoff` file in any project to keep it out.
+- It owns only the lines between `<!-- handoff:auto:start -->` and `<!-- handoff:auto:end -->`. You and your agents can write anything above or below, and it's kept.
+- It masks secrets before writing: `sk-`, `ghp_`, `AKIA`, `AIza` and `xox` keys, JWTs, `password=`-style values, and credentials in URLs.
 
-| Setting | Default | Meaning |
-|---|---|---|
-| `HANDOFF_CONTEXT_WINDOW` | `200000` | Your context window. It switches to 1M by itself once usage passes 200K |
-| `HANDOFF_SOFT_PCT` | `60` | First context reminder |
-| `HANDOFF_URGENT_PCT` | `75` | Urgent context reminder |
-| `HANDOFF_CHECKPOINT_MIN` | `30` | Minutes between checkpoints (`0` disables them) |
+Its own files live in `~/.handoff`: `handoff.log`, `state.json` and `watch.pid`. Set `HANDOFF_HOME` to put them elsewhere.
 
-Put them in the `env` block of `~/.claude/settings.json`. The hook adds about 0.3 s per tool call on Windows (Python start-up); if you'd rather not pay that, delete its `PostToolUse` entry and keep the check that runs when you send a message.
+## Extras
 
-## What's in this repo
+`extras/skills/handoff` is an optional [Agent Skill](https://agentskills.io). It lets a live agent write a richer, hand-written handoff above the app's section, including decisions and dead ends that no log shows. `python extras/install_skill.py` installs it for Claude Code, Codex, Gemini, Antigravity, Cursor, Copilot and OpenCode.
 
-```
-handoff/
-  SKILL.md                     the skill: when to write, what to write, how to resume
-  scripts/snapshot.py          adds the repo snapshot into HANDOFF.md
-  scripts/context_monitor.py   Claude Code hook: context, credit limits, checkpoints
-  scripts/recover.py           rebuilds a handoff from a session that died
-install.py                     installer for every tool
-assets/logo.svg
-HANDOFF.md                     a real handoff (this project's own)
-```
-
-## Questions
-
-**Does it overwrite my project's README?** Never. The file is always `HANDOFF.md`, in the folder you're working in.
-
-**Is HANDOFF.md committed?** Not by itself — the agent asks you first. Commit it when you want to continue on another computer.
-
-**My session died and there's no handoff — what now?** Run `recover.py` (see [above](#what-about-credit-limits-and-expired-sessions)) and let the agent rebuild it from the transcript.
-
-**Can it leak my secrets?** The skill is told never to write keys, tokens or passwords into the file, and the snapshot removes passwords from git remote URLs.
-
-**One file per project or many?** One. Each session updates the same file instead of piling up new ones.
-
-**Do I need Python?** Only for the installer, the snapshot script, the hook and recovery. The skill itself is just Markdown and works without it.
-
-**How do I remove everything?**
+## Development
 
 ```bash
-python install.py --uninstall
+python -m unittest discover -s tests -t .
 ```
+
+## Uninstall
+
+```bash
+handoff stop
+handoff autostart off
+pip uninstall handoff-app
+```
+
+Then delete the `~/.handoff` folder.

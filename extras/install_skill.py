@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 
 HOME = Path.home()
-SOURCE = Path(__file__).resolve().parent / "handoff"
+SOURCE = Path(__file__).resolve().parent / "skills" / "handoff"
 NAME = "handoff"
 MONITOR = "context_monitor.py"
 HOOK_EVENTS = ("SessionStart", "UserPromptSubmit", "PostToolUse")
