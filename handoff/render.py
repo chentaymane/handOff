@@ -14,7 +14,7 @@ END = "<!-- handoff:auto:end -->"
 BLOCK = re.compile(r"^" + re.escape(START) + r"[ \t]*\n.*?^" + re.escape(END) + r"[ \t]*$", re.M | re.S)
 STAMP = re.compile(r"^_Last update: .*$", re.M)
 APP_URL = "https://github.com/chentaymane/handoff"
-AGENT_DIRS = (".claude", ".codex", ".gemini", ".cursor", ".copilot", ".handoff")  # agents' own files, not projects
+AGENT_DIRS = (".claude", ".codex", ".gemini", ".cursor", ".copilot", ".qwen", ".aider", ".handoff")  # agents' own files, not projects
 MAX_FILES = 25
 NO_WINDOW = 0x08000000 if os.name == "nt" else 0  # keep git from flashing console windows
 
@@ -122,7 +122,39 @@ def project_root(folder):
     return Path(top).resolve() if top else Path(folder).resolve()
 
 
-def repo_lines(root):
+def git_since(session):
+    """The session's start as a date git understands, or None."""
+    try:
+        moment = datetime.datetime.fromisoformat(str(session.started).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if moment.tzinfo is None:
+        moment = moment.astimezone()
+    return moment.astimezone(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S +0000")
+
+
+def committed_files(root, since):
+    """Files changed by commits made since `since`, oldest first: {absolute path: kind}.
+
+    Agents often change files through shell commands, which their logs don't show as edits;
+    the commits they made still say exactly what changed.
+    """
+    if not since:
+        return {}
+    out = git(["log", f"--since={since}", "--reverse", "--name-status", "--format="], root) or ""
+    kinds = {"A": "added", "M": "edited", "D": "deleted", "R": "renamed", "C": "added", "T": "edited"}
+    files = {}
+    for line in out.splitlines():
+        fields = line.split("\t")
+        if len(fields) < 2 or not fields[0]:
+            continue
+        path = os.path.join(str(root), fields[-1])
+        files.pop(path, None)
+        files[path] = kinds.get(fields[0][0], "edited")
+    return files
+
+
+def repo_lines(root, since=None):
     sha = git(["rev-parse", "--short", "HEAD"], root)
     if sha is None and git(["rev-parse", "--is-inside-work-tree"], root) is None:
         return ["- Not a git repository."]
@@ -142,9 +174,14 @@ def repo_lines(root):
     untracked = sum(1 for line in entries if line.startswith("??"))
     lines.append(f"- **Uncommitted:** {len(entries) - untracked} changed, {untracked} untracked")
     if sha:
-        log = git(["log", "-5", "--date=short", "--format=%h %ad %s"], root)
-        if log:
-            lines += ["", "Recent commits:", "", "```", redact(log), "```"]
+        made = git(["log", "-15", f"--since={since}", "--format=%h %ad %s", "--date=format:%m-%d %H:%M"],
+                   root) if since else None
+        if made:
+            lines += ["", "Commits made during this session:", "", "```", redact(made), "```"]
+        else:
+            log = git(["log", "-5", "--date=short", "--format=%h %ad %s"], root)
+            if log:
+                lines += ["", "Recent commits:", "", "```", redact(log), "```"]
     if entries:
         shown = entries[:20] + ([f"... and {len(entries) - 20} more"] if len(entries) > 20 else [])
         lines += ["", "Working tree:", "", "```", *shown, "```"]
@@ -180,6 +217,8 @@ def build_section(session, root):
         out += ["", f"**Heads-up:** {warning}."]
 
     out += ["", "### Goal"]
+    if session.title:
+        out += [f"**Session:** {one_line(session.title, 120)}", ""]
     if session.asks:
         out.append(quote(session.asks[0], 900))
         if len(session.asks) > 1 and session.asks[-1].strip() != session.asks[0].strip():
@@ -188,6 +227,8 @@ def build_section(session, root):
         out.append("_No request from the user found in the log._")
 
     out += ["", "### Where we stopped"]
+    if session.summary:
+        out += [f"**{session.tool}'s own recap:**", "", quote(session.summary, 800), "", "**Its last message:**", ""]
     out.append(quote(session.agent_last, 1500) if session.agent_last else "_The agent had not replied yet._")
 
     if session.plan:
@@ -210,7 +251,12 @@ def build_section(session, root):
         out += ["1. Read \"Where we stopped\" and finish anything it left open.",
                 "2. Run `git status` to find uncommitted or half-finished edits before starting new work."]
 
-    files = [(path, kind) for path, kind in session.files.items() if not private_file(path, root)]
+    since = git_since(session)
+    changed = committed_files(root, since)
+    for path, kind in session.files.items():
+        changed.pop(os.path.join(str(root), path) if not os.path.isabs(path) else path, None)
+        changed[path] = kind
+    files = [(path, kind) for path, kind in changed.items() if not private_file(path, root)]
     if files:
         out += ["", "### Files changed in this session"]
         if len(files) > MAX_FILES:
@@ -242,7 +288,7 @@ def build_section(session, root):
         out.append(f"- **Usage limit:** {usage}")
     out.append(f"- **Full log:** `{session.path}`")
 
-    out += ["", "### Repo", *repo_lines(root), END]
+    out += ["", "### Repo", *repo_lines(root, since), END]
     return "\n".join(out)
 
 

@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>handoff dashboard</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236366f1'/%3E%3Cpath d='M9 17h9m0 0-4-4m4 4-4 4M21 10v12' stroke='white' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #f6f7fb; --panel: #ffffff; --panel-2: #f1f3f9; --text: #151826; --muted: #5f667d; --line: #e3e6ef;
+  --accent: #6366f1; --accent-text: #ffffff; --ok: #0d9488; --warn: #d97706; --bad: #dc2626;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 4px 16px rgba(16, 24, 40, .06);
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d0f17; --panel: #151826; --panel-2: #1c2031; --text: #e8eaf2; --muted: #9aa1b8; --line: #262b3f;
+    --accent: #818cf8; --accent-text: #0d0f17; --ok: #2dd4bf; --warn: #fbbf24; --bad: #f87171;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .25);
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif; }
+button { font: inherit; cursor: pointer; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 24px 16px 64px; }
+
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand svg { width: 38px; height: 38px; flex: none; }
+.brand h1 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+.brand p { margin: 0; color: var(--muted); font-size: 13px; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
+  background: var(--panel); border: 1px solid var(--line); font-size: 13px; white-space: nowrap; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.dot.on { background: var(--ok); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 20%, transparent); }
+.dot.off { background: var(--bad); }
+
+.btn { border: 1px solid var(--line); background: var(--panel); color: var(--text); padding: 6px 12px;
+  border-radius: 8px; font-size: 13px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+.btn:disabled { opacity: .5; cursor: default; }
+select.btn { padding-right: 8px; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+.section-title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 28px 0 12px; }
+.section-title h2 { margin: 0; font-size: 16px; }
+.section-title span { color: var(--muted); font-size: 13px; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 24px; }
+.stat { padding: 14px 16px; }
+.stat b { display: block; font-size: 26px; letter-spacing: -.02em; }
+.stat span { color: var(--muted); font-size: 13px; }
+
+.tools { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px; }
+.tool { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px;
+  background: var(--panel-2); font-size: 13px; }
+.tool i { font-style: normal; font-size: 11px; color: var(--muted); }
+.tool.used { outline: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); }
+.tool.used i { color: var(--accent); font-weight: 600; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+.card { padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card.alert { border-color: color-mix(in srgb, var(--bad) 55%, var(--line)); }
+.card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.card h3 { margin: 0; font-size: 16px; overflow-wrap: anywhere; }
+.path { font: 12px var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+.badge { flex: none; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); white-space: nowrap; }
+.goal { margin: 0; font-size: 14px; color: var(--text); display: -webkit-box; -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.goal small { display: block; color: var(--muted); font-size: 12px; }
+.meter { display: grid; gap: 4px; }
+.meter-head { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.bar { height: 8px; border-radius: 99px; background: var(--panel-2); overflow: hidden; }
+.bar > div { height: 100%; border-radius: 99px; background: var(--ok); transition: width .4s; }
+.bar > div.warn { background: var(--warn); }
+.bar > div.bad { background: var(--bad); }
+.facts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 13px; }
+.facts span { color: var(--muted); display: block; font-size: 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 99px; background: color-mix(in srgb, var(--bad) 14%, transparent);
+  color: var(--bad); }
+.missing { color: var(--warn); font-weight: 600; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+
+.empty { padding: 40px 20px; text-align: center; color: var(--muted); }
+
+dialog { width: min(920px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 0; border: 1px solid var(--line);
+  border-radius: 14px; background: var(--panel); color: var(--text); box-shadow: var(--shadow); }
+dialog::backdrop { background: rgba(10, 12, 20, .55); }
+.dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px;
+  border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); }
+.dialog-head b { overflow-wrap: anywhere; font-size: 14px; }
+pre { margin: 0; padding: 16px; font: 12.5px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere;
+  max-height: calc(100vh - 140px); overflow: auto; }
+
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%) translateY(20px); opacity: 0;
+  background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px;
+  max-width: calc(100vw - 32px); transition: .25s; pointer-events: none; overflow-wrap: anywhere; }
+.toast.show { opacity: 1; transform: translateX(-50%); }
+.how { padding: 16px; display: grid; gap: 6px; color: var(--muted); font-size: 14px; }
+.how code { font-family: var(--mono); color: var(--text); background: var(--panel-2); padding: 1px 6px; border-radius: 6px; }
+footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: center; }
+
+@media (max-width: 520px) {
+  .cards { grid-template-columns: 1fr; }
+  .brand h1 { font-size: 19px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#6366f1"/>
+        <path d="M9 17h9m0 0-4-4m4 4-4 4M21 10v12" stroke="white" stroke-width="2.6" fill="none"
+              stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div>
+        <h1>handoff</h1>
+        <p>Your coding agents' sessions, and the HANDOFF.md each project keeps.</p>
+      </div>
+    </div>
+    <div class="controls">
+      <span class="pill"><span class="dot" id="watch-dot"></span><span id="watch-text">Watcher…</span></span>
+      <button class="btn" id="watch-btn" disabled>…</button>
+      <label class="pill"><input type="checkbox" id="autostart"> Start at login</label>
+      <select class="btn" id="days" aria-label="Time range">
+        <option value="1">Last 24 h</option>
+        <option value="7" selected>Last 7 days</option>
+        <option value="30">Last 30 days</option>
+        <option value="90">Last 90 days</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="panel stat"><b id="s-sessions">–</b><span>sessions</span></div>
+    <div class="panel stat"><b id="s-projects">–</b><span>projects</span></div>
+    <div class="panel stat"><b id="s-alerts">–</b><span>need attention</span></div>
+    <div class="panel stat"><b id="s-missing">–</b><span>without a HANDOFF.md</span></div>
+  </div>
+
+  <div class="section-title"><h2>Supported coding CLIs</h2><span id="tool-count"></span></div>
+  <div class="panel tools" id="tools"></div>
+
+  <div class="section-title"><h2>Sessions</h2><span id="updated"></span></div>
+  <div class="cards" id="cards"></div>
+
+  <div class="section-title"><h2>Continue in another CLI</h2></div>
+  <div class="panel how">
+    <div>1. Open the project folder in any supported CLI.</div>
+    <div>2. Say <code>Read HANDOFF.md and continue.</code></div>
+    <div>3. For a session that ended before the watcher ran, press <b>Write HANDOFF.md now</b> on its card.</div>
+  </div>
+
+  <footer id="footer"></footer>
+</div>
+
+<dialog id="viewer">
+  <div class="dialog-head">
+    <b id="viewer-title"></b>
+    <span class="controls">
+      <button class="btn" id="viewer-copy">Copy</button>
+      <button class="btn" id="viewer-close">Close</button>
+    </span>
+  </div>
+  <pre id="viewer-text"></pre>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const PROMPT = "Read HANDOFF.md and continue.";
+let state = null;
+let busy = false;
+
+function el(tag, props, ...children) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(props || {})) {
+    if (key === "class") node.className = value;
+    else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+    else node.setAttribute(key, value);
+  }
+  for (const child of children.flat()) {
+    if (child !== null && child !== undefined && child !== false) {
+      node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+    }
+  }
+  return node;
+}
+
+function ago(seconds) {
+  if (seconds === null || seconds === undefined) return null;
+  if (seconds < 60) return "just now";
+  if (seconds < 3600) return Math.floor(seconds / 60) + " min ago";
+  if (seconds < 86400) return Math.floor(seconds / 3600) + " h ago";
+  return Math.floor(seconds / 86400) + " d ago";
+}
+
+function toast(message) {
+  const node = $("toast");
+  node.textContent = message;
+  node.classList.add("show");
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => node.classList.remove("show"), 3200);
+}
+
+async function api(path, body) {
+  const options = body === undefined ? {} : {
+    method: "POST", headers: { "Content-Type": "application/json", "X-Handoff": "1" }, body: JSON.stringify(body),
+  };
+  const response = await fetch(path, options);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || data.error || response.statusText);
+  return data;
+}
+
+async function copy(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast("Copied");
+  } catch (error) {
+    toast("Could not copy: " + error.message);
+  }
+}
+
+function meter(row) {
+  if (row.context_percent === null) return null;
+  const percent = row.context_percent;
+  const level = percent >= 85 ? "bad" : percent >= 70 ? "warn" : "";
+  const label = `~${Math.round(row.context_tokens / 1000)}K of ${Math.round(row.context_window / 1000)}K` +
+    (row.window_assumed ? " (window assumed)" : "");
+  return el("div", { class: "meter" },
+    el("div", { class: "meter-head" }, el("span", {}, "Context " + percent + "%"), el("span", {}, label)),
+    el("div", { class: "bar" }, el("div", { class: level, style: `width:${Math.min(100, percent)}%` })));
+}
+
+function usage(row) {
+  if (row.limit_hit) return el("b", { style: "color:var(--bad)" }, "limit hit");
+  if (row.limit_percent !== null) return `${Math.round(row.limit_percent)}% of ${row.limit_window || "window"}`;
+  return "not reported";
+}
+
+function card(row, now) {
+  const handoffAge = ago(row.handoff_age);
+  const active = ago(now - row.active);
+  return el("article", { class: "panel card" + (row.alerts.length ? " alert" : "") },
+    el("div", { class: "card-top" },
+      el("div", { style: "min-width:0" }, el("h3", {}, row.name), el("div", { class: "path" }, row.folder)),
+      el("span", { class: "badge" }, row.tool)),
+    row.title || row.goal ? el("p", { class: "goal" },
+      row.title ? el("small", {}, row.title) : null, row.latest || row.goal) : null,
+    meter(row),
+    row.alerts.length ? el("div", { class: "chips" }, row.alerts.map((text) => el("span", { class: "chip" }, text))) : null,
+    el("div", { class: "facts" },
+      el("div", {}, el("span", {}, "Last active"), active),
+      el("div", {}, el("span", {}, "HANDOFF.md"),
+        handoffAge ? "updated " + handoffAge : el("span", { class: "missing" }, "missing")),
+      el("div", {}, el("span", {}, "Usage limit"), usage(row)),
+      el("div", {}, el("span", {}, "Work"), `${row.files} files, ${row.tool_calls} tool calls`)),
+    el("div", { class: "actions" },
+      row.blocked ? el("span", { class: "path" }, "No HANDOFF.md here: " + row.blocked) :
+        el("button", { class: "btn primary", onclick: (event) => writeNow(row, event.currentTarget) },
+          handoffAge ? "Refresh HANDOFF.md" : "Write HANDOFF.md now"),
+      handoffAge ? el("button", { class: "btn", onclick: () => view(row) }, "View") : null,
+      el("button", { class: "btn", onclick: () => copy(`cd "${row.folder}"\n${PROMPT}`) }, "Copy resume prompt")));
+}
+
+function render() {
+  const now = Date.now() / 1000;
+  const sessions = state.sessions;
+  const watcher = state.watcher;
+  $("watch-dot").className = "dot " + (watcher.pid ? "on" : "off");
+  $("watch-text").textContent = watcher.pid ? `Watcher running (pid ${watcher.pid})` : "Watcher stopped";
+  $("watch-btn").textContent = watcher.pid ? "Stop" : "Start";
+  $("watch-btn").disabled = false;
+  $("autostart").checked = watcher.autostart;
+
+  const latest = new Map();
+  for (const row of sessions) if (!latest.has(row.folder)) latest.set(row.folder, row);
+  $("s-sessions").textContent = sessions.length;
+  $("s-projects").textContent = latest.size;
+  $("s-alerts").textContent = [...latest.values()].filter((row) => row.alerts.length).length;
+  $("s-missing").textContent = [...latest.values()].filter((row) => row.handoff_age === null && !row.blocked).length;
+
+  const used = {};
+  for (const row of sessions) used[row.source] = (used[row.source] || 0) + 1;
+  $("tools").replaceChildren(...state.tools.map((tool) =>
+    el("span", { class: "tool" + (used[tool.source] ? " used" : "") }, tool.label,
+      el("i", {}, used[tool.source] ? `${used[tool.source]} session${used[tool.source] > 1 ? "s" : ""}` : "no sessions"))));
+  $("tool-count").textContent = `${state.tools.length} CLIs`;
+
+  const rows = [...latest.values()];
+  $("cards").replaceChildren(...(rows.length ? rows.map((row) => card(row, now)) : [
+    el("div", { class: "panel empty", style: "grid-column:1/-1" },
+      "No agent sessions in this time range. Start coding with any supported CLI and it shows up here.")]));
+  $("updated").textContent = "Updated " + new Date().toLocaleTimeString();
+  $("footer").textContent = `handoff ${state.version} · log: ${watcher.log}`;
+}
+
+async function refresh() {
+  if (busy) return;
+  busy = true;
+  try {
+    state = await api("/api/status?days=" + $("days").value);
+    render();
+  } catch (error) {
+    $("updated").textContent = "Dashboard server not reachable: " + error.message;
+  } finally {
+    busy = false;
+  }
+}
+
+async function writeNow(row, button) {
+  button.disabled = true;
+  try {
+    const result = await api("/api/now", { folder: row.folder });
+    toast(result.message);
+  } catch (error) {
+    toast(error.message);
+  }
+  button.disabled = false;
+  refresh();
+}
+
+async function view(row) {
+  try {
+    const result = await api("/api/handoff?folder=" + encodeURIComponent(row.folder));
+    $("viewer-title").textContent = result.path;
+    $("viewer-text").textContent = result.text === null ? "No HANDOFF.md yet." : result.text;
+    $("viewer").showModal();
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+$("viewer-close").addEventListener("click", () => $("viewer").close());
+$("viewer-copy").addEventListener("click", () => copy($("viewer-text").textContent));
+$("days").addEventListener("change", refresh);
+$("watch-btn").addEventListener("click", async () => {
+  $("watch-btn").disabled = true;
+  try {
+    toast((await api("/api/watcher", { action: state && state.watcher.pid ? "stop" : "start" })).message);
+  } catch (error) {
+    toast(error.message);
+  }
+  setTimeout(refresh, 1500);
+});
+$("autostart").addEventListener("change", async (event) => {
+  try {
+    toast((await api("/api/autostart", { on: event.target.checked })).message);
+  } catch (error) {
+    toast(error.message);
+  }
+  refresh();
+});
+
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

@@ -13,9 +13,9 @@ import time
 from pathlib import Path
 
 from ..session import Session, window_label  # noqa: F401 - re-exported for callers and tests
-from . import claude, codex, cursor, gemini, opencode
+from . import aider, claude, codebuff, codex, copilot, cursor, gemini, opencode, qwen
 
-MODULES = {module.NAME: module for module in (claude, codex, gemini, cursor, opencode)}
+MODULES = {module.NAME: module for module in (claude, codex, gemini, cursor, opencode, qwen, copilot, codebuff, aider)}
 LABELS = ", ".join(module.LABEL for module in MODULES.values())
 
 
@@ -51,6 +51,14 @@ def detect_tool(ref):
     if "#" in text:
         return "cursor" if Path(text.rpartition("#")[0]).name == "state.vscdb" else "opencode"
     path = Path(text)
+    if path.name == aider.HISTORY:
+        return "aider"
+    if path.name == codebuff.MESSAGES:
+        return "codebuff"
+    if ".copilot" in path.parts:
+        return "copilot"
+    if ".qwen" in path.parts:
+        return "qwen"
     if ".gemini" in path.parts:
         return "gemini"
     if ".cursor" in path.parts:

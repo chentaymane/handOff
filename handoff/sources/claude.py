@@ -2,9 +2,10 @@
 
 import json
 import os
+import re
 from pathlib import Path
 
-from ..session import Session, jsonl, text_of, todo_status
+from ..session import Session, jsonl, looks_like_limit, text_of, todo_status
 
 NAME = "claude"
 LABEL = "Claude Code"
@@ -13,6 +14,9 @@ USAGE = ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens
 NOISE = ("<system-reminder>", "<command-name>", "<command-message>", "<command-args>", "<local-command",
          "Caveat: The messages below")
 EDITS = {"Write": "written", "Edit": "edited", "MultiEdit": "edited", "NotebookEdit": "edited"}
+# Context the IDE extensions and the harness wrap around what the user typed.
+INJECTED = re.compile(r"<(ide_[a-z_]+|system-reminder)>.*?</\1>\s*", re.S)
+RECAP_HINT = re.compile(r"\s*\(disable recaps in /config\)\s*$")
 
 
 def discover(max_age_hours=None):
@@ -50,6 +54,7 @@ def folder(ref, max_lines=60):
 
 def read(ref):
     session = Session(tool=LABEL, path=str(ref), id=Path(ref).stem)
+    named = ""
     for entry in jsonl(ref):
         if entry.get("isSidechain"):
             continue  # subagents: their context and chatter aren't the main session's
@@ -59,11 +64,18 @@ def read(ref):
         kind = entry.get("type")
         message = entry.get("message") if isinstance(entry.get("message"), dict) else {}
         blocks = _blocks(message)
-        if kind == "system" and entry.get("subtype") == "compact_boundary":
+        if kind == "ai-title" and entry.get("aiTitle"):
+            session.title = str(entry["aiTitle"])
+        elif kind == "custom-title" and entry.get("customTitle"):
+            named = str(entry["customTitle"])
+        elif kind == "system" and entry.get("subtype") == "compact_boundary":
             session.context_tokens = 0
+        elif kind == "system" and entry.get("subtype") == "away_summary" and entry.get("content"):
+            session.summary = RECAP_HINT.sub("", str(entry["content"]))
         elif entry.get("isApiErrorMessage"):
-            session.error(f"API error ({entry.get('error') or entry.get('apiErrorStatus')}): {text_of(blocks)}")
-            if entry.get("error") == "rate_limit":
+            text = text_of(blocks)
+            session.error(f"API error ({entry.get('error') or entry.get('apiErrorStatus')}): {text}")
+            if entry.get("error") == "rate_limit" or looks_like_limit(text):
                 session.limit_hit = True
         elif kind == "user" and not entry.get("isMeta"):
             said = []
@@ -71,14 +83,19 @@ def read(ref):
                 if block.get("type") == "tool_result" and block.get("is_error"):
                     session.error(text_of(block.get("content")))
                 elif block.get("type") == "text":
-                    text = str(block.get("text") or "").strip()
+                    text = INJECTED.sub("", str(block.get("text") or "")).strip()
                     if text and not text.startswith(NOISE):
                         said.append(text)
             if said:
                 session.asks.append("\n".join(said))
+                session.summary = ""  # a recap covers the work before this request, not after
         elif kind == "assistant":
-            if message.get("model") and message["model"] != "<synthetic>":
+            if message.get("model") == "<synthetic>":
+                continue  # placeholders written by the client, such as "No response requested."
+            if message.get("model"):
                 session.model = message["model"]
+                if message["model"].endswith("[1m]"):
+                    session.context_window = 1_000_000
             usage = message.get("usage") if isinstance(message.get("usage"), dict) else {}
             tokens = sum(int(usage.get(key) or 0) for key in USAGE)
             if tokens:
@@ -89,6 +106,7 @@ def read(ref):
                 elif block.get("type") == "tool_use":
                     session.tool_calls += 1
                     _tool(session, str(block.get("name") or ""), block.get("input"))
+    session.title = named or session.title  # a name the user gave wins over the generated one
     return session
 
 

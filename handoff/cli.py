@@ -7,11 +7,13 @@ import sys
 import time
 from pathlib import Path
 
-from . import __version__, render, sources, system
+from . import __version__, app, render, sources, system
 from .watch import Watcher
 
 EXAMPLES = """\
 examples:
+  handoff install         one step: add the `handoff` command, start the watcher, start it at every login
+  handoff dashboard       open the local web dashboard (http://127.0.0.1:7788)
   handoff status          what your agents are doing and how close they are to their limits
   handoff now             write HANDOFF.md for this folder from its latest session
   handoff start           keep every project's HANDOFF.md current, in the background
@@ -19,58 +21,30 @@ examples:
 """
 
 
-def age(path):
-    try:
-        seconds = time.time() - path.stat().st_mtime
-    except OSError:
-        return "none"
-    if seconds < 3600:
-        return f"{int(seconds // 60)} min old"
-    if seconds < 86400:
-        return f"{int(seconds // 3600)} h old"
-    return f"{int(seconds // 86400)} d old"
-
-
-def find_session(root, days=60):
-    """The newest session, from any agent, whose working folder is `root` or inside it."""
-    base = os.path.normcase(str(root)).rstrip("\\/")
-    for tool, ref, _ in sources.transcripts(days * 24):
-        cwd = sources.session_cwd(tool, ref)
-        if not cwd:
-            continue
-        folder = os.path.normcase(os.path.abspath(cwd)).rstrip("\\/")
-        if folder == base or folder.startswith(base + os.sep):
-            return tool, ref
-    return None
-
-
 def cmd_status(args):
-    pid = system.watcher_pid()
+    state = app.watcher_state()
+    pid = state["pid"]
     print(f"Watcher:    {f'running (pid {pid})' if pid else 'not running - start it with: handoff start'}")
-    print(f"Autostart:  {'on' if system.autostart_path().exists() else 'off - turn it on with: handoff autostart on'}")
+    print(f"Autostart:  {'on' if state['autostart'] else 'off - turn it on with: handoff autostart on'}")
     print(f"Reads:      {sources.LABELS}")
-    print(f"Log file:   {system.LOG_FILE}")
+    print(f"Log file:   {state['log']}")
     print()
     rows = []
-    for tool, ref, stamp in sources.transcripts(args.days * 24)[: args.limit]:
-        session = sources.read_session(tool, ref)
-        if not session or not session.cwd:
-            continue
-        root = render.project_root(session.cwd)
-        percent, window = render.context_percent(session)
-        if session.limit_hit:
+    for row in app.overview(args.days, args.limit):
+        if row["limit_hit"]:
             usage = "LIMIT HIT"
-        elif session.limit_percent is not None:
-            usage = f"{session.limit_percent:.0f}% {session.limit_window}".strip()
+        elif row["limit_percent"] is not None:
+            usage = f"{row['limit_percent']:.0f}% {row['limit_window']}".strip()
         else:
             usage = "-"
+        percent = row["context_percent"]
         rows.append((
-            datetime.datetime.fromtimestamp(stamp).strftime("%Y-%m-%d %H:%M"),
-            session.tool,
-            f"{percent}% of {window // 1000}K" if percent is not None else "-",
+            datetime.datetime.fromtimestamp(row["active"]).strftime("%Y-%m-%d %H:%M"),
+            row["tool"],
+            f"{percent}% of {row['context_window'] // 1000}K" if percent is not None else "-",
             usage,
-            age(root / render.HANDOFF_NAME),
-            str(root),
+            app.age_text(row["handoff_age"]),
+            row["folder"],
         ))
     if not rows:
         print(f"No agent sessions in the last {args.days} days.")
@@ -95,7 +69,7 @@ def cmd_now(args):
         if not folder.is_dir():
             print(f"Not a folder: {folder}")
             return 1
-        found = find_session(render.project_root(folder))
+        found = app.find_session(render.project_root(folder))
         if not found:
             print(f"No agent session found for {render.project_root(folder)}.")
             return 1
@@ -123,7 +97,7 @@ def cmd_now(args):
 
 
 def cmd_watch(args):
-    return Watcher().run()
+    return Watcher(echo=lambda message: print(message, flush=True)).run()
 
 
 def cmd_start(args):
@@ -154,6 +128,42 @@ def cmd_autostart(args):
     return 0
 
 
+def cmd_dashboard(args):
+    from . import dashboard
+
+    return dashboard.serve(args.port, open_browser=not args.no_open)
+
+
+def cmd_install(args):
+    path, on_path, note = system.install_launcher()
+    if note == "installed":
+        print(f"Command:    {path}")
+        if not on_path:
+            print(f"            {path.parent} is not on your PATH yet. Add this line to ~/.bashrc or ~/.zshrc:")
+            print(f'            export PATH="{path.parent}:$PATH"')
+    else:
+        print(f"Command:    {path} ({note})")
+    print(f"Autostart:  on ({system.set_autostart(True)})")
+    code = cmd_start(args)
+    print()
+    print("From now on, every project you work on with a coding agent keeps a HANDOFF.md up to date.")
+    print("When a session hits a limit, open the project in any other agent and say:")
+    print('    "Read HANDOFF.md and continue."')
+    print("For a session that already ended, run `handoff now` inside its project folder.")
+    return code
+
+
+def cmd_uninstall(args):
+    cmd_stop(args)
+    system.set_autostart(False)
+    print("Autostart is off.")
+    removed = system.remove_launcher()
+    if removed:
+        print(f"Removed {removed}")
+    print(f"HANDOFF.md files in your projects are kept. The app's own files are in {system.APP_DIR}.")
+    return 0
+
+
 def main(argv=None):
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -171,6 +181,11 @@ def main(argv=None):
     now.add_argument("--print", action="store_true", help="show the handoff instead of writing it")
     now.add_argument("--from", dest="log", metavar="LOG",
                      help="build it from this session log (or DATABASE#ID) instead of the folder's latest session")
+    board = commands.add_parser("dashboard", help="open the local web dashboard (this computer only)")
+    board.add_argument("--port", type=int, default=7788, help="port to use (default 7788, or the next free one)")
+    board.add_argument("--no-open", action="store_true", help="don't open a browser window")
+    commands.add_parser("install", help="add the `handoff` command, start the watcher and start it at login")
+    commands.add_parser("uninstall", help="stop the watcher, turn autostart off and remove the `handoff` command")
     commands.add_parser("watch", help="run the watcher in this window (Ctrl+C to stop)")
     commands.add_parser("start", help="run the watcher in the background")
     commands.add_parser("stop", help="stop the background watcher")
@@ -181,5 +196,6 @@ def main(argv=None):
         parser.print_help()
         return 0
     handlers = {"status": cmd_status, "now": cmd_now, "watch": cmd_watch, "start": cmd_start,
-                "stop": cmd_stop, "autostart": cmd_autostart}
+                "stop": cmd_stop, "autostart": cmd_autostart, "install": cmd_install, "uninstall": cmd_uninstall,
+                "dashboard": cmd_dashboard}
     return handlers[args.command](args) or 0

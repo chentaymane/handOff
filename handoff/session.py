@@ -6,8 +6,9 @@ from dataclasses import dataclass, field
 
 KEEP_COMMANDS = 20
 KEEP_ERRORS = 10
-LIMIT_WORDS = ("rate limit", "rate_limit", "ratelimit", "usage limit", "quota", "resource_exhausted",
-               "credits are required", "too many requests")
+LIMIT_WORDS = ("rate limit", "rate_limit", "ratelimit", "usage limit", "session limit", "weekly limit",
+               "hit your limit", "quota", "resource_exhausted", "credits are required",
+               "credit balance is too low", "out of credits", "too many requests")
 
 
 @dataclass
@@ -19,10 +20,12 @@ class Session:
     id: str = ""
     cwd: str = ""
     model: str = ""
+    title: str = ""                                # a short name for the session, when the agent keeps one
     started: str = ""                              # ISO 8601
     updated: str = ""
     asks: list = field(default_factory=list)       # the user's messages, oldest first
     agent_last: str = ""                           # the agent's latest reply
+    summary: str = ""                              # the agent's own recap of the session, when it writes one
     plan: list = field(default_factory=list)       # the agent's own checklist: (step, status)
     plan_note: str = ""
     files: dict = field(default_factory=dict)      # path -> added / edited / written / deleted

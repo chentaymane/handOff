@@ -19,6 +19,16 @@ TEMP_DIR = None          # overridden in tests
 
 def skip_reason(session, root):
     """Why the watcher should not write a HANDOFF.md for this session, or None if it should."""
+    reason = place_reason(root)
+    if reason:
+        return reason
+    if not (session.files or len(session.commands) >= 3 or len(session.asks) >= 2 or session.limit_hit):
+        return "too little activity yet"
+    return None
+
+
+def place_reason(root):
+    """Why a HANDOFF.md must never be written in this folder, or None."""
     try:
         root = Path(root).resolve()
     except OSError:
@@ -35,8 +45,6 @@ def skip_reason(session, root):
         return "agent settings folder"
     if (root / ".nohandoff").exists():
         return ".nohandoff file"
-    if not (session.files or len(session.commands) >= 3 or len(session.asks) >= 2 or session.limit_hit):
-        return "too little activity yet"
     return None
 
 

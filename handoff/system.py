@@ -168,6 +168,58 @@ def stop_background():
     return pid
 
 
+# ---- the `handoff` command -----------------------------------------------------------
+
+LAUNCHER_MARK = "handoff launcher, written by `handoff install`"
+
+
+def launcher_path():
+    if os.name == "nt":  # a folder Windows puts on every user's PATH
+        return Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "WindowsApps" / "handoff.cmd"
+    return Path.home() / ".local" / "bin" / "handoff"
+
+
+def install_launcher():
+    """Put a `handoff` command on the PATH that runs this copy. Returns (path, on_path, note)."""
+    path = launcher_path()
+    existing = shutil.which("handoff")
+    if existing and Path(existing).resolve() != path.resolve():
+        return Path(existing), True, "already installed"
+    if path.exists() and LAUNCHER_MARK not in path.read_text(encoding="utf-8", errors="replace"):
+        return path, _on_path(path.parent), "left alone: a different program already has this name"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    folder = str(PACKAGE_PARENT)
+    if os.name == "nt":
+        script = (f'@echo off\nrem {LAUNCHER_MARK}\nset "PYTHONPATH={folder};%PYTHONPATH%"\n'
+                  f'"{sys.executable}" -m handoff %*\n')
+        path.write_bytes(script.replace("\n", "\r\n").encode("utf-8"))
+    else:
+        def sh(text):
+            return "'" + str(text).replace("'", "'\\''") + "'"
+
+        path.write_text(f'#!/bin/sh\n# {LAUNCHER_MARK}\n'
+                        f'PYTHONPATH={sh(folder)}"${{PYTHONPATH:+:$PYTHONPATH}}" exec {sh(sys.executable)} -m handoff "$@"\n',
+                        encoding="utf-8")
+        path.chmod(0o755)
+    return path, _on_path(path.parent), "installed"
+
+
+def remove_launcher():
+    path = launcher_path()
+    try:
+        if LAUNCHER_MARK in path.read_text(encoding="utf-8", errors="replace"):
+            path.unlink()
+            return path
+    except OSError:
+        pass
+    return None
+
+
+def _on_path(folder):
+    folders = [os.path.normcase(os.path.abspath(item)) for item in os.environ.get("PATH", "").split(os.pathsep) if item]
+    return os.path.normcase(os.path.abspath(folder)) in folders
+
+
 # ---- start at login ----------------------------------------------------------------
 
 def autostart_path():
