@@ -27,6 +27,15 @@ def file_age(path):
         return None
 
 
+def short_path(path):
+    """A folder as people read it: ~/code/app instead of /home/you/code/app."""
+    home = str(Path.home())
+    path = str(path)
+    if path == home or path.startswith(home.rstrip("\\/") + os.sep):
+        return "~" + path[len(home.rstrip("\\/")):]
+    return path
+
+
 def find_session(root, days=60):
     """The newest session, from any agent, whose working folder is `root` or inside it."""
     base = os.path.normcase(str(root)).rstrip("\\/")
@@ -64,6 +73,7 @@ def overview(days=7, limit=12):
             "source": tool,
             "ref": str(ref),
             "folder": str(root),
+            "short": short_path(root),
             "name": root.name,
             "active": stamp,
             "model": session.model,

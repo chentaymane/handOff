@@ -194,6 +194,10 @@ function el(tag, props, ...children) {
   return node;
 }
 
+function plural(count, word) {
+  return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
+
 function ago(seconds) {
   if (seconds === null || seconds === undefined) return null;
   if (seconds < 60) return "just now";
@@ -251,7 +255,7 @@ function card(row, now) {
   const active = ago(now - row.active);
   return el("article", { class: "panel card" + (row.alerts.length ? " alert" : "") },
     el("div", { class: "card-top" },
-      el("div", { style: "min-width:0" }, el("h3", {}, row.name), el("div", { class: "path" }, row.folder)),
+      el("div", { style: "min-width:0" }, el("h3", {}, row.name), el("div", { class: "path", title: row.folder }, row.short || row.folder)),
       el("span", { class: "badge" }, row.tool)),
     row.title || row.goal ? el("p", { class: "goal" },
       row.title ? el("small", {}, row.title) : null, row.latest || row.goal) : null,
@@ -262,7 +266,7 @@ function card(row, now) {
       el("div", {}, el("span", {}, "HANDOFF.md"),
         handoffAge ? "updated " + handoffAge : el("span", { class: "missing" }, "missing")),
       el("div", {}, el("span", {}, "Usage limit"), usage(row)),
-      el("div", {}, el("span", {}, "Work"), `${row.files} files, ${row.tool_calls} tool calls`)),
+      el("div", {}, el("span", {}, "Work"), `${plural(row.files, "file")}, ${plural(row.tool_calls, "tool call")}`)),
     el("div", { class: "actions" },
       row.blocked ? el("span", { class: "path" }, "No HANDOFF.md here: " + row.blocked) :
         el("button", { class: "btn primary", onclick: (event) => writeNow(row, event.currentTarget) },
@@ -292,7 +296,7 @@ function render() {
   for (const row of sessions) used[row.source] = (used[row.source] || 0) + 1;
   $("tools").replaceChildren(...state.tools.map((tool) =>
     el("span", { class: "tool" + (used[tool.source] ? " used" : "") }, tool.label,
-      el("i", {}, used[tool.source] ? `${used[tool.source]} session${used[tool.source] > 1 ? "s" : ""}` : "no sessions"))));
+      el("i", {}, used[tool.source] ? plural(used[tool.source], "session") : "no sessions"))));
   $("tool-count").textContent = `${state.tools.length} CLIs`;
 
   const rows = [...latest.values()];

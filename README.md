@@ -1,132 +1,95 @@
 <div align="center">
 
-<img src="assets/logo.svg" alt="handoff" width="112" height="112">
+<img src="assets/logo.svg" alt="handoff logo" width="96" height="96">
 
 # handoff
 
-**Never lose your work when the tokens run out.**
+**Hit a limit in one coding CLI. Keep going in another, right where you stopped.**
 
-A small background app, not a skill or a prompt, that watches your coding agents (Claude Code, Codex, Cursor, Gemini CLI, OpenCode, Qwen Code, GitHub Copilot CLI, Freebuff/Codebuff and Aider) and keeps a `HANDOFF.md` in every project, so when the context fills up, the credit runs out or the session dies, any agent can pick up exactly where you stopped.
+`handoff` is a small background app that watches your AI coding agents and keeps a `HANDOFF.md` in every project: the goal, where the agent stopped, its plan, the files it changed and the state of the repo. When the context fills up, the credit runs out or the session dies, open the project in any other agent and say **"Read HANDOFF.md and continue."**
 
-[![Python](https://img.shields.io/badge/python-3.8+-3776ab?style=flat-square)](https://www.python.org/)
-[![Dependencies](https://img.shields.io/badge/dependencies-none-6366f1?style=flat-square)](pyproject.toml)
-[![Reads](https://img.shields.io/badge/reads-9_coding_agents-0d9488?style=flat-square)](#what-it-reads)
-[![Platforms](https://img.shields.io/badge/platforms-Windows,_macOS,_Linux-475569?style=flat-square)](#install)
+[![Python](https://img.shields.io/badge/python-3.8+-3776ab?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![No dependencies](https://img.shields.io/badge/dependencies-none-6366f1?style=flat-square)](pyproject.toml)
+[![9 CLIs](https://img.shields.io/badge/reads-9_coding_CLIs-0d9488?style=flat-square)](#supported-clis)
+[![Platforms](https://img.shields.io/badge/Linux_·_macOS_·_Windows-475569?style=flat-square)](#quick-start)
+
+[Quick start](#quick-start) · [Supported CLIs](#supported-clis) · [Dashboard](#dashboard) · [How it works](#how-it-works) · [FAQ](#faq)
+
+<img src="assets/dashboard.png" alt="The handoff dashboard: one card per project with context usage, usage limits, alerts and HANDOFF.md status" width="900">
 
 </div>
 
----
+## The problem
 
-## Why an app
+You're deep into a task with Claude Code, and it stops: *usage limit reached*. Or Codex runs out of credit, Cursor's context is full, or the terminal crashes. The agent knew what it was doing, what it had tried and what came next, and all of that is gone. The next agent starts from zero.
 
-Prompts, rules and skills only work while the agent is alive and remembers to use them. When your credit runs out, the agent is already gone, and so is everything it knew.
+Asking the agent to "write down where you are before you stop" doesn't work either, because a cut-off doesn't warn it.
 
-`handoff` doesn't ask the agent for anything. Every coding agent already saves its conversation to disk as it works. `handoff` reads those logs **from the outside** and writes the handoff itself, which is why it still works after the session has died.
+**`handoff` works from the outside.** Every coding agent already saves its conversation to disk as it works. `handoff` reads those logs and writes the handoff itself, after every step, so it's already there when the limit hits, and it still works after the session is dead. It's an app, not a prompt, skill or plugin: nothing to add to your agents.
 
-```mermaid
-flowchart LR
-    A["Claude Code"] --> L["session logs on disk"]
-    B["Codex"] --> L
-    C["Cursor"] --> L
-    D["Gemini CLI"] --> L
-    E["OpenCode"] --> L
-    G["Qwen Code, Copilot CLI, Freebuff, Aider"] --> L
-    L --> H["handoff app"]
-    H --> F["HANDOFF.md in your project"]
-    H --> N["desktop alert: limit at 90%"]
-    F --> X["any agent: Read HANDOFF.md and continue"]
-```
+## Quick start
 
-## What it does
-
-- **Keeps `HANDOFF.md` current.** After every step an agent finishes, the file in that project is refreshed: goal, where it stopped, the agent's own plan and recap, files changed (including those changed through shell commands and committed), commands, errors, repo state.
-- **Sees the limit coming.** Codex records how much of its usage limit is used. At **80%** and **95%**, `handoff` writes the handoff immediately and shows a desktop notification, before the credit is gone.
-- **Catches the cut-off.** When any agent hits a usage limit, session limit, rate limit, quota or runs out of credits, or a context window passes 70% and 85%, it writes the handoff at once and alerts you.
-- **Rescues dead sessions.** `handoff now` rebuilds the handoff from the log of a session that already ended.
-- **Stays out of your way.** It only writes its own marked section, masks API keys and passwords, and never writes into your home folder, temp folders or agent settings.
-
-## Install
-
-Python 3.8 or newer. Nothing else.
+You need Python 3.8 or newer, and nothing else.
 
 ```bash
-git clone https://github.com/chentaymane/handoff
-cd handoff
+git clone https://github.com/chentaymane/handOff
+cd handOff
 python3 -m handoff install
 ```
 
-`install` does everything in one step: it adds a `handoff` command (in `~/.local/bin` on Linux and macOS, a folder already on your PATH on Windows), starts the watcher in the background, and makes it start by itself whenever you log in. It works on systems where `pip install` is blocked, such as Ubuntu 24.04 and Debian 12. Keep the cloned folder: the command runs from it.
+That's it. `install`:
 
-With pip or pipx instead: `pipx install .` (or `pip install .`), then `handoff start` and `handoff autostart on`.
+1. adds a `handoff` command (in `~/.local/bin` on Linux and macOS; on Windows, in a folder that's already on your PATH),
+2. starts the watcher in the background,
+3. makes the watcher start by itself every time you log in.
 
-## Commands
+It works even where `pip install` is blocked, such as Ubuntu 24.04 and Debian 12. Keep the cloned folder, because the command runs from it. If you prefer pip: `pipx install .`, then `handoff start` and `handoff autostart on`.
 
-| Command | What it does |
+Then just code as usual. When a session gets cut off:
+
+```
+cd your-project
+<open any other coding CLI>
+> Read HANDOFF.md and continue.
+```
+
+## Supported CLIs
+
+| CLI | Where it reads | Context | Usage limit | Tested |
+|---|---|---|---|---|
+| **Claude Code** (CLI, desktop, VS Code, JetBrains) | `~/.claude/projects` | measured | when a limit is hit | ✅ real sessions |
+| **Codex** (CLI, IDE extension, app) | `~/.codex/sessions` | exact | **% used before you hit it**, with reset time | ✅ real sessions |
+| **Cursor** | `~/.cursor` transcripts and `state.vscdb` | exact | when a limit is hit | ✅ real sessions |
+| **OpenCode** | `~/.local/share/opencode/opencode.db` | measured | when a limit is hit | ✅ real sessions |
+| **Gemini CLI** | `~/.gemini/tmp/*/chats` | measured | when a quota is hit | 🧪 sample logs |
+| **Qwen Code** | `~/.qwen/tmp/*/chats` | measured | when a limit or quota is hit | 🧪 sample logs |
+| **GitHub Copilot CLI** | `~/.copilot/session-state` | when logged | when a rate limit is hit | 🧪 sample logs |
+| **Freebuff** / **Codebuff** | `~/.config/manicode/projects` | measured | when credits run out | 🧪 sample logs |
+| **Aider** | `.aider.chat.history.md` in each project | from its token report | when a rate limit is hit | 🧪 sample logs |
+
+✅ tested on real sessions. 🧪 built from the tool's source code or published log format and tested on sample logs; please [open an issue](https://github.com/chentaymane/handOff/issues) if one misreads your sessions.
+
+Only Codex writes its usage percentage into its logs, so it's the one CLI where `handoff` can warn you *before* you hit the limit (at 80% and 95%). For the others, `HANDOFF.md` is refreshed after every step, so it's already current when the limit arrives.
+
+Not supported yet: Antigravity, which stores conversations in a binary format.
+
+## What goes into HANDOFF.md
+
+Everything the next agent needs, taken from the session log and from git:
+
+| Section | What it contains |
 |---|---|
-| `handoff install` / `handoff uninstall` | Set everything up in one step / undo it (your HANDOFF.md files are kept) |
-| `handoff dashboard` | Open the local web dashboard at http://127.0.0.1:7788 (`--port`, `--no-open`) |
-| `handoff status` | Your recent agent sessions: context used, usage limit, how old each project's HANDOFF.md is, and whether the watcher runs |
-| `handoff now` | Write HANDOFF.md for the current folder from its latest session, whichever agent it was (`--print` to only show it) |
-| `handoff now FOLDER --from LOG` | Rebuild a handoff from one specific session log |
-| `handoff start` / `handoff stop` | Run the watcher in the background / stop it |
-| `handoff watch` | Run the watcher in this window, to see what it does |
-| `handoff autostart on` / `off` | Start the watcher when you log in |
-
-```
-$ handoff status
-Watcher:    running (pid 18244)
-Autostart:  on
-Reads:      Claude Code, Codex, Gemini CLI, Cursor, OpenCode, Qwen Code, Copilot CLI, Freebuff/Codebuff, Aider
-
-LAST ACTIVE       TOOL         CONTEXT       USAGE LIMIT  HANDOFF.md  FOLDER
-2026-09-16 15:38  Claude Code  55% of 1000K  -            1 min old   C:\Users\you\Desktop\shop-api
-2026-09-16 14:02  Codex        40% of 258K   87% 30-day   3 min old   C:\Users\you\Desktop\uploader
-2026-09-16 11:20  Cursor       41% of 200K   LIMIT HIT    9 min old   C:\Users\you\Desktop\insta-bot
-2026-09-15 23:54  OpenCode     39% of 200K   -            2 h old     C:\Users\you\Desktop\scraper
-```
-
-## Dashboard
-
-```bash
-handoff dashboard
-```
-
-Opens a page in your browser, served by the app itself on `127.0.0.1` so only your computer can reach it. It shows, and refreshes every 5 seconds:
-
-- the watcher (start or stop it) and whether it starts at login,
-- every supported CLI and how many sessions each has,
-- one card per project: the tool, the goal and latest request, how full the context is, the usage limit, alerts, and how old its HANDOFF.md is,
-- buttons to write or refresh HANDOFF.md right now, read it, or copy the prompt that resumes the work in another CLI.
-
-It only reads and writes in folders where one of your agents has worked, and it refuses requests from other websites.
-
-## What it reads
-
-| Tool | Where | Context | Usage limit |
-|---|---|---|---|
-| **Codex** (CLI, IDE extension, app) | `~/.codex/sessions` | exact | **percentage before you hit it**, with its reset time |
-| **Claude Code** (CLI, desktop, IDE) | `~/.claude/projects` | measured, window size assumed | when a limit is hit |
-| **Cursor** | `~/.cursor/projects/*/agent-transcripts` and Cursor's `state.vscdb` | exact | when a limit is hit |
-| **OpenCode** | `~/.local/share/opencode/opencode.db` | measured | when a limit is hit (HTTP 429) |
-| **Gemini CLI** | `~/.gemini/tmp/*/chats` | measured | when a quota is hit |
-| **Qwen Code** | `~/.qwen/tmp/*/chats` | measured, window from the log | when a rate limit or quota is hit |
-| **GitHub Copilot CLI** | `~/.copilot/session-state/*/events.jsonl` | when the log has it | when a rate limit is hit |
-| **Freebuff** and **Codebuff** | `~/.config/manicode/projects/*/chats` | measured | when credits run out or a limit is hit |
-| **Aider** | `.aider.chat.history.md` in each project | from the token report | when a rate limit is hit |
-| Antigravity | — | stores conversations in a binary format, not readable yet | — |
-
-Only Codex writes its usage percentage into its logs, so it's the one tool where `handoff` can warn you *before* the credit runs out. For the others, the handoff is kept fresh after every step, so it's already written when the limit arrives.
-
-Claude Code, Codex, Cursor and OpenCode were tested on real sessions. The Gemini CLI, Qwen Code, Copilot CLI, Freebuff/Codebuff and Aider readers are built from those tools' source code and published formats, and tested with sample logs.
-
-Aider keeps its log inside each project, so `handoff` looks for it one and two folders deep in your home folder and in the usual places for code (`Desktop`, `Documents`, `projects`, `code`, `src`, `dev`, `work`, `repos` and a few more). If your projects live elsewhere, set `HANDOFF_SCAN` to a list of folders, separated like `PATH`.
-
-Claude Code also writes a short recap of the session when you step away, and a title for it. Both go into the handoff.
-
-## What HANDOFF.md looks like
+| **Heads-up** | why it was written: limit hit, usage at 91%, context 87% full |
+| **Goal** | your first request, the latest one, and the session's title |
+| **Where we stopped** | the agent's last message, plus its own recap when it wrote one |
+| **Plan** and **Next steps** | the agent's to-do list, with done and in-progress items marked |
+| **Files changed** | from the agent's edits *and* from the commits it made, so changes done through shell commands aren't missed |
+| **Recent commands** and **Errors seen** | what it ran, and what failed |
+| **Session** | tool, model, context used, usage limit and reset time, path to the full log |
+| **Repo** | branch, commit, ahead/behind, uncommitted files, commits made during the session |
 
 <details>
-<summary>An example from a Codex session at 91% of its usage limit</summary>
+<summary><b>See an example</b>: a Codex session at 91% of its usage limit</summary>
 
 ```markdown
 # HANDOFF: shop-api
@@ -164,6 +127,9 @@ _Last update: 2026-09-16 15:42 +0100, from a **Codex** session (gpt-5.5)._
 - `src/pages/cart.tsx` - edited
 - `src/emails/receipt.html` - added
 
+### Recent commands
+- `npm test -- checkout`
+
 ### Session
 - **Tool:** Codex (gpt-5.5), 48 tool calls
 - **Context:** ~142K of 258K tokens (55%)
@@ -177,28 +143,143 @@ _Last update: 2026-09-16 15:42 +0100, from a **Codex** session (gpt-5.5)._
 
 </details>
 
-Open the project in any agent and say **"Read HANDOFF.md and continue."**
+`handoff` only owns the lines between its two markers. You and your agents can write anything above or below them, such as decisions or dead ends, and it's kept.
 
-## How it decides
-
-- It checks the logs every 5 seconds and only acts on sessions that are active **after** it started, so it never fills old projects with files.
-- It writes once an agent has been quiet for 20 seconds (a step just finished), so the file is at most one step behind.
-- It writes immediately, and alerts once per level, when a usage limit or the context window crosses a threshold.
-- It only writes for real work: at least one changed file, three commands, two requests, or a limit hit.
-- It never writes into your home folder, a drive root, a temp folder or an agent's settings folder. Put an empty `.nohandoff` file in any project to keep it out.
-- It owns only the lines between `<!-- handoff:auto:start -->` and `<!-- handoff:auto:end -->`. You and your agents can write anything above or below, and it's kept.
-- It masks secrets before writing: `sk-`, `ghp_`, `AKIA`, `AIza` and `xox` keys, JWTs, `password=`-style values, and credentials in URLs.
-- It opens agent databases read-only, so it can never block or change them.
-
-Its own files live in `~/.handoff`: `handoff.log`, `state.json` and `watch.pid`. Set `HANDOFF_HOME` to put them elsewhere.
-
-## Development
+## Dashboard
 
 ```bash
-python -m unittest discover -s tests -t .
+handoff dashboard
 ```
 
-Each agent has one reader in `handoff/sources/` with the same three functions (`discover`, `read`, `folder`), so adding another agent means adding one file.
+Opens a local page in your browser, at `http://127.0.0.1:7788`, that refreshes every 5 seconds:
+
+- **The watcher:** running or not, with a Start/Stop button and a "start at login" switch.
+- **All 9 CLIs**, and how many sessions each one has.
+- **One card per project:** which CLI, the goal and latest request, a context bar that turns orange at 70% and red at 85%, the usage limit, alerts, and how old its `HANDOFF.md` is.
+- **Buttons:** write or refresh `HANDOFF.md` now, read it, or copy the prompt that resumes the work in another CLI.
+
+The page is served by `handoff` itself, from your computer only. It reads and writes only in folders where one of your agents has worked, and it refuses requests from other websites.
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `handoff install` | Set everything up: the command, the watcher, start at login |
+| `handoff uninstall` | Undo it all (your `HANDOFF.md` files are kept) |
+| `handoff dashboard` | Open the dashboard (`--port 7788`, `--no-open`) |
+| `handoff status` | Recent sessions in the terminal: context, usage limit, HANDOFF.md age |
+| `handoff now` | Write `HANDOFF.md` for this folder now, from its latest session (`--print` to only show it) |
+| `handoff now FOLDER --from LOG` | Rebuild a handoff from one specific session log |
+| `handoff start` / `stop` | Start or stop the background watcher |
+| `handoff watch` | Run the watcher in this terminal, to see what it does |
+| `handoff autostart on` / `off` | Start the watcher at login, or not |
+
+```
+$ handoff status
+Watcher:    running (pid 18244)
+Autostart:  on
+Reads:      Claude Code, Codex, Gemini CLI, Cursor, OpenCode, Qwen Code, Copilot CLI, Freebuff/Codebuff, Aider
+
+LAST ACTIVE       TOOL               CONTEXT       USAGE LIMIT  HANDOFF.md  FOLDER
+2026-09-29 16:59  Claude Code        87% of 200K   -            1 min old   /home/you/code/shop-api
+2026-09-29 16:46  Codex              46% of 258K   91% 5-hour   1 min old   /home/you/code/uploader
+2026-09-29 16:21  Freebuff/Codebuff  31% of 200K   LIMIT HIT    2 min old   /home/you/code/landing-page
+2026-09-29 11:45  Aider              20% of 200K   -            5 h old     /home/you/code/scraper
+```
+
+## How it works
+
+```mermaid
+flowchart LR
+    A["Claude Code · Codex · Cursor<br/>OpenCode · Gemini CLI · Qwen Code<br/>Copilot CLI · Freebuff · Aider"] -->|save their chats| L["session logs on disk"]
+    L -->|read every 5 s| H["handoff watcher"]
+    G["git"] --> H
+    H --> F["HANDOFF.md in the project"]
+    H --> N["desktop alert"]
+    F --> X["any other CLI:<br/>Read HANDOFF.md and continue"]
+```
+
+When it writes:
+
+- **After every step.** When an agent has been quiet for 20 seconds, it just finished a step, so `HANDOFF.md` is at most one step behind.
+- **Right away, with a desktop alert,** when a limit or quota is hit, credits run out, the context passes 70% or 85%, or Codex's usage passes 80% or 95%. Each alert fires once per level.
+- **Only for real work:** at least one changed file, three commands, two requests, or a limit hit.
+- **Only for new activity:** sessions active after the watcher started. For a session that ended before, run `handoff now` in its folder.
+
+Where it never writes: your home folder, a drive root, temp folders, and agents' settings folders. Put an empty `.nohandoff` file in a project to keep it out too.
+
+## Privacy and safety
+
+- **Nothing leaves your computer.** No account, no network calls, no telemetry. It reads files and writes files.
+- **Secrets are masked** before writing: `sk-`, `ghp_`, `AKIA`, `AIza` and `xox` keys, JWTs, `password=`-style values, and credentials in URLs.
+- **Agent data is read-only.** Databases are opened in read-only mode, so `handoff` can never block or change your agents.
+- **Your notes are safe.** Only the section between the markers is ever rewritten.
+- **The dashboard is local.** It listens on `127.0.0.1` only and refuses requests from other websites.
+
+## Configuration
+
+Nothing is required. These environment variables are optional:
+
+| Variable | What it does |
+|---|---|
+| `HANDOFF_HOME` | Where `handoff` keeps its own files (default `~/.handoff`: `handoff.log`, `state.json`, `watch.pid`) |
+| `HANDOFF_SCAN` | Folders to search for Aider projects, separated like `PATH` (default: your home folder and `Desktop`, `Documents`, `projects`, `code`, `src`, `dev`, `work`, `repos` and a few more, two levels deep) |
+| `CODEX_HOME` | Codex's data folder, if you moved it |
+| `FREEBUFF_CONFIG_DIR` | Freebuff's data folder, if you moved it |
+
+## FAQ
+
+<details>
+<summary><b>Is this a skill, a plugin or an MCP server?</b></summary>
+
+No. It's a standalone app that runs next to your agents. Skills and prompts only work while the agent is alive and remembers to use them; a usage limit gives it no chance to. `handoff` reads the logs agents already write, so it needs nothing from them.
+</details>
+
+<details>
+<summary><b>Why does only Codex show a usage percentage?</b></summary>
+
+Because only Codex writes it into its logs. Claude Code, Cursor and the others only say something once the limit is hit. For them, `handoff` keeps the file current after every step, so it's already written by then, and it alerts you the moment the limit message appears.
+</details>
+
+<details>
+<summary><b>Do I need to keep a terminal open?</b></summary>
+
+No. After `handoff install`, the watcher runs in the background and starts by itself when you log in. `handoff status` or the dashboard shows whether it's running.
+</details>
+
+<details>
+<summary><b>A session ended before I installed handoff. Can I still get a handoff?</b></summary>
+
+Yes. Run `handoff now` inside the project folder, or press **Write HANDOFF.md now** on its card in the dashboard. It rebuilds the handoff from that session's log.
+</details>
+
+<details>
+<summary><b>Should I commit HANDOFF.md?</b></summary>
+
+Your choice. Committing it lets a teammate or another machine pick up the work. If you'd rather not, add `HANDOFF.md` to `.gitignore`; `handoff` doesn't count it as an uncommitted change either way.
+</details>
+
+<details>
+<summary><b>The context percentage for Claude Code says "window size assumed". Why?</b></summary>
+
+Claude Code logs how many tokens are in use, but not how big the window is. `handoff` assumes 200K, and 1M once a session goes past 200K or the model name ends in `[1m]`. If the guess is too small, the only effect is that the handoff gets written a bit early.
+</details>
+
+## Add another CLI
+
+Each CLI has one reader in [`handoff/sources/`](handoff/sources) with the same three functions:
+
+```python
+def discover(max_age_hours):  # yield (ref, stamp) for each session; stamp changes whenever the session does
+def read(ref):                # return a Session: requests, replies, plan, files, commands, errors, tokens, limits
+def folder(ref):              # the session's project folder, found cheaply
+```
+
+Add the module to `MODULES` in [`handoff/sources/__init__.py`](handoff/sources/__init__.py), add a test with a small sample log, and it shows up everywhere: the watcher, `handoff status` and the dashboard.
+
+```bash
+python3 -m unittest discover -s tests -t .
+```
 
 ## Uninstall
 
@@ -206,4 +287,4 @@ Each agent has one reader in `handoff/sources/` with the same three functions (`
 handoff uninstall
 ```
 
-Then delete the cloned folder and `~/.handoff`. If you installed with pip, also run `pip uninstall handoff-app`.
+This stops the watcher, turns off autostart and removes the `handoff` command. Your `HANDOFF.md` files stay. Then delete the cloned folder and `~/.handoff`. If you installed with pip, also run `pip uninstall handoff-app`.

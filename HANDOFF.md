@@ -17,6 +17,7 @@ A general app, not a skill, that works across the popular coding CLIs: when the 
 - Local web dashboard: `handoff dashboard` (`handoff/dashboard.py` + `dashboard.html`, stdlib `ThreadingHTTPServer` on 127.0.0.1:7788). Host header must be 127.0.0.1/localhost, POSTs need `X-Handoff: 1` and a JSON body (blocks other websites), and only folders from the sessions overview can be read or written. Checked in Chrome with real data.
 - Shared logic moved to `handoff/app.py` (overview, find_session, write_now); `watch.place_reason` is the one rule for folders that never get a HANDOFF.md.
 - 64 unit tests pass.
+- README rewritten: dashboard screenshot, supported-CLI table with tested status, HANDOFF.md contents, privacy, configuration, FAQ, how to add a CLI. Dashboard shows paths under home as `~/...`.
 
 ## Next steps
 1. When Qwen Code, Copilot CLI, Freebuff, Aider or Gemini CLI get used for real, check each reader against a real log.
@@ -33,6 +34,9 @@ A general app, not a skill, that works across the popular coding CLIs: when the 
 - The watcher only acts on sessions active after it started, writes after 20 s of quiet, writes at once on alerts, only for real work, never in home, drive roots, temp or agent folders, and only inside its own marker lines.
 
 ## Tried and failed / gotchas
+- 2026-09-29 16:57 the user ran `handoff uninstall` on this PC themselves: the watcher, autostart and `~/.local/bin/handoff` are gone on purpose. Don't reinstall unless asked.
+- README screenshot (`assets/dashboard.png`) uses demo data: a fake HOME with sample sessions for four CLIs, and TMPDIR moved elsewhere, because folders under /tmp count as temporary and get no HANDOFF.md. Never screenshot the user's real sessions for the repo.
+- `pkill -f PATTERN` also kills the Bash tool's own shell when PATTERN appears in the command; use `pgrep` and kill the pid.
 - Markers found with a plain substring search corrupt any file that quotes them; match marker lines only.
 - In Bash tool commands a doubled backslash can arrive as a single one, so an escaped tab written in a heredoc became a real tab and broke a Python file. Build such strings with chr(92).
 - Tests for a reader must redirect every path that reader scans, or they pick up the real user's data (a Cursor test found the real transcripts).
@@ -62,9 +66,7 @@ A general app, not a skill, that works across the popular coding CLIs: when the 
 <!-- handoff:auto:start -->
 ## Auto handoff
 
-_Last update: 2026-09-29 16:50 +0000, from a **Claude Code** session (claude-opus-5-5). Kept current by the [handoff app](https://github.com/chentaymane/handoff): this section is rewritten automatically, anything outside it is kept._
-
-**Heads-up:** the context window is 95% full.
+_Last update: 2026-09-29 16:56 +0000, from a **Claude Code** session (claude-opus-5-5). Kept current by the [handoff app](https://github.com/chentaymane/handoff): this section is rewritten automatically, anything outside it is kept._
 
 ### Goal
 **Session:** App fix effort
@@ -73,16 +75,41 @@ _Last update: 2026-09-29 16:50 +0000, from a **Claude Code** session (claude-opu
 
 **Latest request:**
 
-> tell me all the cli now he support them and we can add a dashbor for stub run inside a web localy and commit all that and pushit
+> push
 
 ### Where we stopped
-> Now the dashboard server. It uses only the Python standard library, only listens on this computer (127.0.0.1), and rejects requests from other websites.
+> The push failed again: this PC still isn't logged in to GitHub, and I can't sign in for you. Run these in the prompt, with the `!` in front:
+>
+> ```
+> ! gh auth login
+> ! gh auth setup-git
+> ```
+>
+> In `gh auth login`, choose **GitHub.com**, then **HTTPS**, then **Login with a web browser**, and finish the sign-in in the browser it opens. Then say "push" again and I'll push the commit, which is still waiting.
+>
+> `HANDOFF.md` shows as changed again because the watcher keeps its auto-section current while we work. I can include that in the push too.
 
 ### Next steps
 1. Read "Where we stopped" and finish anything it left open.
 2. Run `git status` to find uncommitted or half-finished edits before starting new work.
 
 ### Files changed in this session
+- `HANDOFF.md` - edited
+- `README.md` - edited
+- `extras/install_skill.py` - deleted
+- `extras/skills/handoff/SKILL.md` - deleted
+- `extras/skills/handoff/scripts/context_monitor.py` - deleted
+- `extras/skills/handoff/scripts/recover.py` - deleted
+- `extras/skills/handoff/scripts/snapshot.py` - deleted
+- `handoff/__init__.py` - edited
+- `handoff/cli.py` - edited
+- `handoff/render.py` - edited
+- `handoff/session.py` - edited
+- `handoff/sources/__init__.py` - edited
+- `handoff/sources/claude.py` - edited
+- `handoff/system.py` - edited
+- `handoff/watch.py` - edited
+- `pyproject.toml` - edited
 - `handoff/sources/qwen.py` - written
 - `handoff/sources/copilot.py` - written
 - `handoff/sources/aider.py` - written
@@ -90,66 +117,40 @@ _Last update: 2026-09-29 16:50 +0000, from a **Claude Code** session (claude-opu
 - `handoff/sources/codebuff.py` - written
 - `handoff/app.py` - written
 - `handoff/dashboard.py` - written
+- `handoff/dashboard.html` - written
+- `tests/test_dashboard.py` - written
 
 ### Recent commands
-- `cd /tmp/claude-71182/-home-achent-Desktop-handOff/c0e32e13-2741-4979-a7e6-028400e91c41/scratchpad/fb && grep -rn "projectRoot\b\|cwd:" sdk/src/run-state.ts c...`
-- `cd /tmp/claude-71182/-home-achent-Desktop-handOff/c0e32e13-2741-4979-a7e6-028400e91c41/scratchpad/fb && sed -n 58,68p common/src/util/file.ts; grep -rn "file...`
-- `cd /tmp/claude-71182/-home-achent-Desktop-handOff/c0e32e13-2741-4979-a7e6-028400e91c41/scratchpad/fb && grep -rn "timestamp: " cli/src/utils/message-history....`
-- `python3 - <<'EOF' p='handoff/sources/codebuff.py'; s=open(p).read() old=''' text = text_of(output) if not isinstance(output, str) else output if isinstance(o...`
-- `python3 - <<'EOF' p='tests/test_new_sources.py'; s=open(p).read() s=s.replace("from handoff.sources import aider, claude, copilot, qwen","from handoff.source...`
-- `python3 - <<'EOF' import re p='README.md'; s=open(p).read() s=s.replace("OpenCode, Qwen Code, GitHub Copilot CLI and Aider) and keeps","OpenCode, Qwen Code,...`
-- `git remote -v && git status -sb | head -3 && python3 -c " import time from handoff import sources t=time.time() for tool, ref, stamp in sources.transcripts(7...`
-- `python3 - <<'EOF' p='handoff/cli.py'; s=open(p).read() start=s.index("def age(path):"); end=s.index("def cmd_now(args):") s=s[:start]+'''def cmd_status(args)...`
+- `python3 -m unittest discover -s tests -t . 2>&1 | tail -2`
+- `python3 -m handoff dashboard --no-open`
+- `pid=$(pgrep -f "m handoff dashboard" | head -1); [ -n "$pid" ] && kill $pid; echo stopped $pid`
+- `python3 - <<'EOF' p='README.md'; s=open(p).read() def rep(a,b): global s assert a in s, a[:70]; s=s.replace(a,b) rep('''| 'handoff install' / 'handoff uninst...`
+- `git diff --cached | grep -niE "gmail|password|token=[redacted]" | head; python3 -m unittest discover -s tests -t . 2>&1 | tail -1`
+- `git commit -q -F - <<'EOF' Add a local dashboard and read Qwen Code, Copilot CLI, Freebuff and Aider - handoff dashboard: a local web page (127.0.0.1 only) w...`
+- `which gh && gh auth status 2>&1 | head -5; ls ~/.ssh 2>/dev/null; git config --get credential.helper`
+- `gh auth status 2>&1 | head -3; git status -sb | head -3; git push origin main 2>&1 | tail -3`
 
 ### Errors seen
 - Exit code 1 Python 3.12.3 ................................................ ---------------------------------------------------------------------- Ran 48 tests in 0.113s OK (eval):1: == not found
 - Exit code 1 Watcher: not running - start it with: handoff start Autostart: off - turn it on with: handoff autostart on Reads: Claude Code, Codex, Gemini CLI, Cursor, OpenCode Log file: /home/achent/.handoff/handoff.log LAST ACTIVE TOOL C...
 - Exit code 1 import os from 'os' import path from 'path' import { env } from '@codebuff/common/env' import { getCliEnv } from './env' /** * Resolve the on-disk config directory for the CLI. * * Lives in its own module (depending only on '...
+- Exit code 144
+- Exit code 1 /usr/bin/gh You are not logged into any GitHub hosts. To log in, run: gh auth login
 
 ### Session
-- **Tool:** Claude Code (claude-opus-5-5), 75 tool calls
-- **Active:** 2026-09-29 16:09 to 2026-09-29 16:50
-- **Context:** ~189K of 200K tokens (95%, window size assumed)
+- **Tool:** Claude Code (claude-opus-5-5), 98 tool calls
+- **Active:** 2026-09-29 16:09 to 2026-09-29 16:56
+- **Context:** ~219K of 1000K tokens (22%, window size assumed)
 - **Full log:** `/home/achent/.claude/projects/-home-achent-Desktop-handOff/c0e32e13-2741-4979-a7e6-028400e91c41.jsonl`
 
 ### Repo
-- **Branch:** `main` @ `b4d248e` - Fix the wording of handoff start's message
-- **Upstream:** `origin/main` - ahead 0, behind 0
-- **Uncommitted:** 14 changed, 7 untracked
+- **Branch:** `main` @ `0819762` - Add a local dashboard and read Qwen Code, Copilot CLI, Freebuff and Aider
+- **Upstream:** `origin/main` - ahead 1, behind 0
+- **Uncommitted:** 0 changed, 0 untracked
 
-Recent commits:
-
-```
-b4d248e 2026-09-16 Fix the wording of handoff start's message
-cd801a2 2026-09-16 Read Cursor, OpenCode and Gemini CLI sessions too
-a50d391 2026-09-16 Fix marker matching that corrupted HANDOFF.md files quoting the markers
-f86cf43 2026-09-16 Turn handoff into a standalone app that reads agents' session logs
-4783b92 2026-09-16 Cover credit limits, expired sessions and crashes
-```
-
-Working tree:
+Commits made during this session:
 
 ```
- M README.md
-D  extras/install_skill.py
-D  extras/skills/handoff/SKILL.md
-D  extras/skills/handoff/scripts/context_monitor.py
-D  extras/skills/handoff/scripts/recover.py
-D  extras/skills/handoff/scripts/snapshot.py
- M handoff/__init__.py
- M handoff/cli.py
- M handoff/render.py
- M handoff/session.py
- M handoff/sources/__init__.py
- M handoff/sources/claude.py
- M handoff/system.py
- M pyproject.toml
-?? handoff/app.py
-?? handoff/dashboard.py
-?? handoff/sources/aider.py
-?? handoff/sources/codebuff.py
-?? handoff/sources/copilot.py
-?? handoff/sources/qwen.py
-... and 1 more
+0819762 09-29 16:53 Add a local dashboard and read Qwen Code, Copilot CLI, Freebuff and Aider
 ```
 <!-- handoff:auto:end -->
