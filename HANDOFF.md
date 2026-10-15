@@ -11,13 +11,14 @@ The user chose the **MIT license** and has **no payment page yet** (so the READM
 
 ## Where we stopped
 - Version 2.1.0 is committed on `main` ("Release 2.1.0: one-command install, MIT license, professional README"), pushed, tagged `v2.1.0`, and published as a GitHub release with `handoff-skill.zip` attached (https://github.com/chentaymane/handOff/releases/tag/v2.1.0). The one-command installers now serve 2.1.0.
+- CI is green on all 9 jobs (run 38757707178): Linux, macOS and Windows on Python 3.10 and 3.13, Ubuntu 22.04 on 3.8, `install.sh` and `install.ps1`. The first run failed only on Windows: GitHub's runner hands out temp folders as the 8.3 short name `C:\Users\RUNNER~1`, which broke the Cursor slug-to-folder test; fixed in the test (`57c13b1`, `os.path.realpath`). The `v2.1.0` tag stays on `c97175c`, since the fix only touches a test.
+- Checked live after the release: `curl -fsSL https://raw.githubusercontent.com/chentaymane/handOff/main/install.sh | sh` installs 2.1.0 into an empty home folder.
 - This PC's installed copies are 2.1.0 (`~/.claude/skills/handoff`, `~/.agents/skills/handoff`, `~/.gemini/antigravity/skills/handoff`).
 
 ## Next steps
-1. Check the first CI run of `.github/workflows/tests.yml` (`gh run list --workflow tests.yml`). macOS and Python 3.8 had never run these tests; fix anything red, since the README shows the badge.
-2. Offer to set the GitHub repo description and topics (`gh repo edit --description ... --add-topic agent-skills,claude-code,codex,...`). It's public, so ask first.
-3. Test the skill in real Codex, Gemini CLI, Cursor, Copilot CLI and OpenCode sessions (data folders exist on this PC; none of the CLIs are on PATH in Git Bash).
-4. From before: check the Qwen Code, Copilot CLI, Freebuff, Aider and Gemini CLI log readers against real logs.
+1. Offer to set the GitHub repo description and topics (`gh repo edit --description ... --add-topic agent-skills,claude-code,codex,...`). It's public, so ask first.
+2. Test the skill in real Codex, Gemini CLI, Cursor, Copilot CLI and OpenCode sessions (data folders exist on this PC; none of the CLIs are on PATH in Git Bash).
+3. From before: check the Qwen Code, Copilot CLI, Freebuff, Aider and Gemini CLI log readers against real logs.
 
 ## Done so far
 - [x] 2.0.0 (`eacad9b`, pushed): the engine moved into `skills/handoff/scripts/handoff/`; `SKILL.md`, `references/clis.md`, `skill.py` installer (17 CLI targets), `install.py`, `now --tool` / `--repo-only` / `sessions`, `.claude-plugin/` manifests.
@@ -66,7 +67,7 @@ The user chose the **MIT license** and has **no payment page yet** (so the READM
 <!-- handoff:auto:start -->
 ## Auto handoff
 
-_Last update: 2026-10-15 15:05 +0000, from a **Claude Code** session (claude-opus-5-5). Written by [handoff](https://github.com/chentaymane/handOff) from the session's log and git: this section is rewritten automatically, anything outside it is kept._
+_Last update: 2026-10-15 15:10 +0000, from a **Claude Code** session (claude-opus-5-5). Written by [handoff](https://github.com/chentaymane/handOff) from the session's log and git: this section is rewritten automatically, anything outside it is kept._
 
 ### Goal
 **Session:** Skill conversion for CLI
@@ -75,20 +76,25 @@ _Last update: 2026-10-15 15:05 +0000, from a **Claude Code** session (claude-opu
 
 **Latest request:**
 
-> Commit everything, push to main, tag v2.1.0 and create the GitHub release with the skill zip attached.
+> <task-notification>
+> <task-id>bsztx4sug</task-id>
+> <tool-use-id>toolu_01HsQQvWm9QZRWgH6aJtsRLt</tool-use-id>
+> <output-file>C:\Users\chent\AppData\Local\Temp\claude\C--Users-chent-Desktop-handOff\115997e7-5d46-4107-9c10-f60a477cb7cc\tasks\bsztx4sug.output</output-file>
+> <status>completed</status>
+> <summary>Background command "Wait for the CI run on the fix and summarize it" completed (exit code 0)</summary>
+> </task-notification>
 
 ### Where we stopped
-> The demo change is my own spacing tweak, and `main` is level with GitHub. Updating HANDOFF.md so the committed copy describes the release:
+> All 9 CI jobs pass now: Linux, macOS and Windows, Python 3.8 to 3.13, plus both installers. I'll record that in HANDOFF.md so the repo's handoff stays accurate.
 
 ### Next steps
 1. Read "Where we stopped" and finish anything it left open.
 2. Run `git status` to find uncommitted or half-finished edits before starting new work.
 
 ### Files changed in this session
-_The last 25 of 52 files:_
-- `skills/handoff/scripts/handoff/watch.py` - renamed
-- `tests/__init__.py` - edited
-- `tests/test_skill.py` - added
+_The last 25 of 60 files:_
+- `tests/test_skill.py` - edited
+- `tests/test_more_sources.py` - edited
 - `skills/handoff/scripts/handoff/app.py` - edited
 - `skills/handoff/scripts/handoff/render.py` - edited
 - `skills/handoff/scripts/handoff.py` - written
@@ -110,65 +116,42 @@ _The last 25 of 52 files:_
 - `.claude/preview-demo.html` - written
 - `README.md` - written
 - `tests/test_skill.py` - written
+- `tests/test_more_sources.py` - edited
 - `HANDOFF.md` - written
 
 ### Recent commands
-- `SP="C:/Users/chent/AppData/Local/Temp/claude/C--Users-chent-Desktop-handOff/115997e7-5d46-4107-9c10-f60a477cb7cc/scratchpad"; CLAUDE="/c/Users/chent/AppData/...`
-- `SP="C:/Users/chent/AppData/Local/Temp/claude/C--Users-chent-Desktop-handOff/115997e7-5d46-4107-9c10-f60a477cb7cc/scratchpad"; CLAUDE="/c/Users/chent/AppData/...`
-- `SP="C:/Users/chent/AppData/Local/Temp/claude/C--Users-chent-Desktop-handOff/115997e7-5d46-4107-9c10-f60a477cb7cc/scratchpad"; CLAUDE="/c/Users/chent/AppData/...`
-- `CLAUDE="/c/Users/chent/AppData/Roaming/Claude/claude-code/2.1.295/d2e29494ec83/claude.exe"; "$CLAUDE" plugin validate . 2>&1 | tail -4; echo "== sh -n"; sh -...`
-- `python install.py 2>&1 | head -6`
-- `python ~/.claude/skills/handoff/scripts/handoff.py now --tool claude && python -m unittest discover -s tests -t . 2>&1 | tail -2 && git status --short`
-- `grep -n 'class="dim">\|<rect x="8[0-9][0-9]" y="234"' assets/demo.svg | head -6; sed -n 1,25p HANDOFF.md; git fetch -q origin && git status -sb | head -1`
-- `python ~/.claude/skills/handoff/scripts/handoff.py now --tool claude >/dev/null && python -m unittest discover -s tests -t . 2>&1 | tail -1 && git add -A &&...`
+- `gh run list --repo chentaymane/handOff --workflow tests.yml --limit 3 --json databaseId,status,conclusion,headSha,event --jq '.[] | (.databaseId|tostring) +...`
+- `gh run watch 38757253669 --repo chentaymane/handOff --exit-status --interval 20 > /dev/null 2>&1; echo "exit=$?"; gh run view 38757253669 --repo chentaymane/...`
+- `gh run view 38757253669 --repo chentaymane/handOff --log-failed 2>&1 | grep -E "FAIL|ERROR|Error|assert|Traceback|File \"|Ran [0-9]+|^.*\| *[A-Za-z]+Error" |...`
+- `grep -n "class CursorTranscriptTest" -A30 tests/test_more_sources.py | head -45; grep -n "mkdtemp\|TemporaryDirectory" tests/test_more_sources.py | head`
+- `SP="C:/Users/chent/AppData/Local/Temp/claude/C--Users-chent-Desktop-handOff/115997e7-5d46-4107-9c10-f60a477cb7cc/scratchpad"; mkdir -p "$SP/averyveryverylong...`
+- `python -m unittest discover -s tests -t . 2>&1 | tail -1 && git add tests/test_more_sources.py && git commit -q -F - <<'EOF' Use the long temp path in the Cu...`
+- `sleep 8; id=$(gh run list --repo chentaymane/handOff --workflow tests.yml --limit 5 --json databaseId,headSha --jq '.[] | select(.headSha | startswith("57c13...`
+- `python ~/.claude/skills/handoff/scripts/handoff.py now --tool claude >/dev/null && git add HANDOFF.md && git commit -q -m "Update the handoff after the 2.1.0...`
 
 ### Errors seen
-- screenshot failed: Screenshot timed out after 5s: the page did not finish rendering in time. Retry; the pane does not need to be displayed. Claude's window may be behind another window, which can stop the page from drawing; if this repea...
 - [navigate] opened file:///C:/Users/chent/AppData/Local/Temp/claude/C--Users-chent-Desktop-handOff/115997e7-5d46-4107-9c10-f60a477cb7cc/scratchpad/preview-demo.html in the preview pane (files outside the project folder render as static sn...
 - This tab shows a local file, not a web page; page tools can't act on it here. Open web pages in a new tab ('tabs_create', then 'navigate').
 - This tab shows a local file, not a web page; page tools can't act on it here. Open web pages in a new tab ('tabs_create', then 'navigate').
 - Exit code 2 Downloading handoff (main)... curl: (6) Could not resolve host: github.com handoff: Could not download https://github.com/chentaymane/handOff/archive/main.tar.gz ls: cannot access 'C:/Users/chent/AppData/Local/Temp/claude/C--...
+- Exit code 1 https://github.com/chentaymane/handOff/releases/tag/v2.1.0 Unknown JSON field: "isLatest" Available fields: apiUrl assets author body createdAt databaseId id isDraft isImmutable isPrerelease name publishedAt tagName tarballUr...
 
 ### Session
-- **Tool:** Claude Code (claude-opus-5-5), 174 tool calls
-- **Active:** 2026-10-15 13:49 to 2026-10-15 15:05
-- **Context:** ~367K of 1000K tokens (37%, window size assumed)
+- **Tool:** Claude Code (claude-opus-5-5), 198 tool calls
+- **Active:** 2026-10-15 13:49 to 2026-10-15 15:10
+- **Context:** ~382K of 1000K tokens (38%, window size assumed)
 - **Full log:** `C:\Users\chent\.claude\projects\C--Users-chent-Desktop-handOff\115997e7-5d46-4107-9c10-f60a477cb7cc.jsonl`
 
 ### Repo
-- **Branch:** `main` @ `eacad9b` - Turn handoff into a cross-CLI Agent Skill
+- **Branch:** `main` @ `57c13b1` - Use the long temp path in the Cursor reader tests
 - **Upstream:** `origin/main` - ahead 0, behind 0
-- **Uncommitted:** 10 changed, 11 untracked
+- **Uncommitted:** 0 changed, 0 untracked
 
 Commits made during this session:
 
 ```
+57c13b1 10-15 15:08 Use the long temp path in the Cursor reader tests
+c97175c 10-15 15:05 Release 2.1.0: one-command install, MIT license, professional README
 eacad9b 10-15 14:12 Turn handoff into a cross-CLI Agent Skill
-```
-
-Working tree:
-
-```
- M .claude-plugin/plugin.json
- M README.md
- M pyproject.toml
- M skills/handoff/SKILL.md
- M skills/handoff/references/clis.md
- M skills/handoff/scripts/handoff/__init__.py
- M skills/handoff/scripts/handoff/cli.py
- M skills/handoff/scripts/handoff/render.py
- M skills/handoff/scripts/handoff/system.py
- M tests/test_skill.py
-?? .gitattributes
-?? .github/
-?? CHANGELOG.md
-?? CONTRIBUTING.md
-?? LICENSE
-?? assets/demo.svg
-?? install.ps1
-?? install.sh
-?? skills/handoff/LICENSE.txt
-?? skills/handoff/agents/
-... and 1 more
 ```
 <!-- handoff:auto:end -->
