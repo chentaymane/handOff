@@ -14,7 +14,7 @@ END = "<!-- handoff:auto:end -->"
 BLOCK = re.compile(r"^" + re.escape(START) + r"[ \t]*\n.*?^" + re.escape(END) + r"[ \t]*$", re.M | re.S)
 STAMP = re.compile(r"^_Last update: .*$", re.M)
 APP_URL = "https://github.com/chentaymane/handoff"
-AGENT_DIRS = (".claude", ".codex", ".gemini", ".cursor", ".copilot", ".qwen", ".aider", ".handoff")  # agents' own files, not projects
+AGENT_DIRS = (".agents", ".claude", ".codex", ".gemini", ".cursor", ".copilot", ".qwen", ".aider", ".handoff")  # agents' own files, not projects
 MAX_FILES = 25
 NO_WINDOW = 0x08000000 if os.name == "nt" else 0  # keep git from flashing console windows
 
@@ -209,8 +209,8 @@ def build_section(session, root):
         START,
         "## Auto handoff",
         "",
-        f"_Last update: {now}, from a **{session.tool}** session{model}. Kept current by the "
-        f"[handoff app]({APP_URL}): this section is rewritten automatically, anything outside it is kept._",
+        f"_Last update: {now}, from a **{session.tool}** session{model}. Written by [handoff]({APP_URL}) "
+        "from the session's log and git: this section is rewritten automatically, anything outside it is kept._",
     ]
     warning = heads_up(session)
     if warning:
@@ -290,6 +290,22 @@ def build_section(session, root):
 
     out += ["", "### Repo", *repo_lines(root, since), END]
     return "\n".join(out)
+
+
+def build_repo_section(root, reason="no session log was read"):
+    """The auto section with git facts only, for agents whose session logs handoff can't read."""
+    now = datetime.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %z")
+    return "\n".join([
+        START,
+        "## Auto handoff",
+        "",
+        f"_Last update: {now}. Repo facts only ({reason}). Written by [handoff]({APP_URL}): this section is "
+        "rewritten automatically, anything outside it is kept._",
+        "",
+        "### Repo",
+        *repo_lines(root),
+        END,
+    ])
 
 
 # ---- writing -----------------------------------------------------------------------

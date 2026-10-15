@@ -36,17 +36,24 @@ def short_path(path):
     return path
 
 
-def find_session(root, days=60):
-    """The newest session, from any agent, whose working folder is `root` or inside it."""
+def folder_sessions(root, days=60, tool=None):
+    """Sessions, from any agent or only `tool`, whose working folder is `root` or inside it.
+
+    Yields (tool, ref, stamp), newest first.
+    """
     base = os.path.normcase(str(root)).rstrip("\\/")
-    for tool, ref, _ in sources.transcripts(days * 24):
-        cwd = sources.session_cwd(tool, ref)
+    for name, ref, stamp in sources.transcripts(days * 24, only=tool):
+        cwd = sources.session_cwd(name, ref)
         if not cwd:
             continue
         folder = os.path.normcase(os.path.abspath(cwd)).rstrip("\\/")
         if folder == base or folder.startswith(base + os.sep):
-            return tool, ref
-    return None
+            yield name, ref, stamp
+
+
+def find_session(root, days=60, tool=None):
+    """The newest session, from any agent or only `tool`, whose working folder is `root` or inside it."""
+    return next(((name, ref) for name, ref, _ in folder_sessions(root, days, tool)), None)
 
 
 def cached_session(tool, ref, stamp):

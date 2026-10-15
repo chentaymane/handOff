@@ -1,0 +1,14 @@
+{
+  "name": "handoff",
+  "description": "The handoff skill: keep HANDOFF.md current so any coding agent can continue the work.",
+  "owner": {
+    "name": "chentaymane"
+  },
+  "plugins": [
+    {
+      "name": "handoff",
+      "source": "./",
+      "description": "Save and resume work across coding agents with HANDOFF.md, and recover sessions that hit a limit."
+    }
+  ]
+}

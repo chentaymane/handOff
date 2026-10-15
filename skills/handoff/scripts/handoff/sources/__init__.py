@@ -9,6 +9,7 @@ Each source module has NAME, LABEL and three functions:
 A ref is a log file path, or "<database>#<session id>" for agents that keep their chats in SQLite.
 """
 
+import re
 import time
 from pathlib import Path
 
@@ -17,13 +18,26 @@ from . import aider, claude, codebuff, codex, copilot, cursor, gemini, opencode,
 
 MODULES = {module.NAME: module for module in (claude, codex, gemini, cursor, opencode, qwen, copilot, codebuff, aider)}
 LABELS = ", ".join(module.LABEL for module in MODULES.values())
+ALIASES = {"claudecode": "claude", "github-copilot": "copilot", "github-copilot-cli": "copilot",
+           "cursor-agent": "cursor", "cursor-cli": "cursor", "freebuff": "codebuff", "codex-cli": "codex"}
 
 
-def transcripts(max_age_hours=None):
-    """Every known session as (tool, ref, stamp), newest first."""
+def tool_name(text):
+    """The source name for what people call an agent: "Claude Code", "gemini-cli", "freebuff" -> claude, gemini, codebuff."""
+    key = re.sub(r"[\s_]+", "-", str(text or "").strip().lower())
+    names = {name: name for name in MODULES}
+    names.update({re.sub(r"\s+", "-", module.LABEL.lower()): name for name, module in MODULES.items()})
+    names.update(ALIASES)
+    return names.get(key)
+
+
+def transcripts(max_age_hours=None, only=None):
+    """Every known session as (tool, ref, stamp), newest first; `only` limits it to one agent."""
     cutoff = time.time() - max_age_hours * 3600 if max_age_hours else 0
     found = []
     for name, module in list(MODULES.items()):
+        if only and name != only:
+            continue
         try:
             found += [(name, ref, stamp) for ref, stamp in module.discover(max_age_hours) if stamp >= cutoff]
         except Exception:  # one agent's unreadable data must not hide the others
