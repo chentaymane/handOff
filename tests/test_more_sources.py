@@ -16,7 +16,9 @@ class TempFolder(unittest.TestCase):
     def setUp(self):
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
-        self.folder = Path(folder.name)
+        # The long path: Windows temp folders can come as 8.3 short names (C:\Users\RUNNER~1\...),
+        # which no real folder name on disk matches.
+        self.folder = Path(os.path.realpath(folder.name))
 
     def patch(self, target, name, value):
         patcher = mock.patch.object(target, name, value)
