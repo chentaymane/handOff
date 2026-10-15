@@ -1,116 +1,136 @@
 <div align="center">
 
-<img src="assets/logo.svg" alt="handoff logo" width="96" height="96">
+<img src="assets/logo.svg" alt="handoff" width="88" height="88">
 
 # handoff
 
-**Hit a limit in one coding CLI. Keep going in another, right where you stopped.**
+### Your coding agent hit a limit. The next one picks up exactly where it stopped.
 
-`handoff` is an [Agent Skill](https://agentskills.io) for coding agents. It keeps a `HANDOFF.md` in your project with the goal, where the agent stopped, its plan, what failed, the files it changed and the state of the repo. When the context fills up, the credit runs out or the session dies, open the project in any other agent and say **"Read HANDOFF.md and continue."**
+An [Agent Skill](https://agentskills.io) that keeps a `HANDOFF.md` in your project: the goal, where the agent stopped, what comes next and what already failed. When a session dies before it can write one, handoff rebuilds it from the session's own log. It works in Claude Code, Codex, Cursor, Gemini CLI, Copilot CLI, OpenCode and 15 more.
 
+[![Version](https://img.shields.io/badge/version-2.1.0-0d9488?style=flat-square)](CHANGELOG.md)
+[![Tests](https://img.shields.io/github/actions/workflow/status/chentaymane/handOff/tests.yml?branch=main&style=flat-square&label=tests)](https://github.com/chentaymane/handOff/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-6366f1?style=flat-square)](LICENSE)
 [![Agent Skill](https://img.shields.io/badge/Agent_Skill-SKILL.md-d97706?style=flat-square)](skills/handoff/SKILL.md)
-[![20+ CLIs](https://img.shields.io/badge/installs_into-20%2B_coding_CLIs-0d9488?style=flat-square)](#install)
-[![Python](https://img.shields.io/badge/python-3.8+-3776ab?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![No dependencies](https://img.shields.io/badge/dependencies-none-6366f1?style=flat-square)](pyproject.toml)
+[![No dependencies](https://img.shields.io/badge/dependencies-none-475569?style=flat-square)](pyproject.toml)
 
-[Install](#install) · [Use it](#use-it) · [What it does](#what-the-skill-does) · [Session logs it reads](#session-logs-it-reads) · [Watcher and dashboard](#optional-the-watcher-and-the-dashboard) · [FAQ](#faq)
+[Install](#install) · [Use it](#use-it) · [Why handoff](#why-handoff) · [Supported CLIs](#supported-clis) · [FAQ](#faq)
 
-<img src="assets/dashboard.png" alt="The handoff dashboard: one card per project with context usage, usage limits, alerts and HANDOFF.md status" width="900">
+<br>
+
+<img src="assets/demo.svg" alt="A Claude Code session hits its usage limit right after saving HANDOFF.md, and a Codex session reads HANDOFF.md and continues the same task." width="900">
 
 </div>
 
-## The problem
-
-You're deep into a task with Claude Code, and it stops: *usage limit reached*. Or Codex runs out of credit, Cursor's context is full, or the terminal crashes. The agent knew what it was doing, what it had tried and what came next, and all of that is gone. The next agent starts from zero.
-
-**`handoff` fixes it in two ways:**
-
-1. **The skill teaches every agent to keep a handoff.** It writes `HANDOFF.md` when the budget runs low, at milestones and when you ask, and reads it back when you say "continue", in any CLI.
-2. **Its bundled script reads the agents' own session logs.** Every coding CLI saves its conversation to disk. So even when a session dies before it could write anything, the next agent can rebuild the handoff from that log: Claude Code, Codex, Cursor, Gemini CLI, Copilot CLI, OpenCode, Qwen Code, Freebuff and Aider.
-
 ## Install
 
-You need Python 3.8 or newer and nothing else.
+**macOS and Linux**
 
 ```bash
-git clone https://github.com/chentaymane/handOff
-cd handOff
-python3 install.py
+curl -fsSL https://raw.githubusercontent.com/chentaymane/handOff/main/install.sh | sh
 ```
 
-On Windows, use `python` or `py -3` instead of `python3`.
+**Windows** (PowerShell)
 
-`install.py` finds the coding CLIs on your computer and copies the skill into each one's skills folder:
+```powershell
+irm https://raw.githubusercontent.com/chentaymane/handOff/main/install.ps1 | iex
+```
 
-| Skills folder | Read by |
-|---|---|
-| `~/.claude/skills/handoff` | Claude Code |
-| `~/.agents/skills/handoff` | Codex, Cursor, Gemini CLI, GitHub Copilot CLI, OpenCode (always installed: it's the shared folder of the Agent Skills standard) |
-| `~/.qwen/skills/handoff` | Qwen Code |
-| `~/.codeium/windsurf/skills/handoff` | Windsurf |
-| `~/.gemini/antigravity/skills/handoff` | Antigravity |
-| `~/.config/agents/skills`, `~/.config/goose/skills`, `~/.factory/skills`, `~/.kiro/skills`, ... | Amp, Goose, Factory Droid, Kiro CLI, Crush, Kilo Code, Roo Code, Augment, Trae, Continue, Junie, OpenHands |
+One command finds every coding CLI on your computer and installs the skill into each one. It needs Python 3.8 or newer, and nothing else. Run the same command again to update.
 
-It only installs where the CLI is present, never overwrites a different skill that happens to be called `handoff`, and running it again updates every copy. `python3 install.py --dry-run` shows what it would do, `python3 install.py status` shows where it is.
+```
+handoff skill 2.1.0
+
+  Claude Code                                       ~/.claude/skills/handoff   installed
+  Codex, Cursor, Gemini CLI, Copilot CLI, OpenCode  ~/.agents/skills/handoff   installed
+  Qwen Code                                         ~/.qwen/skills/handoff     installed
+
+Done. Open a new session in any of these CLIs and say "save progress" or "continue".
+```
 
 <details>
-<summary><b>Other ways to install</b></summary>
+<summary><b>Install from inside your CLI instead</b></summary>
 
-| Where | How |
+<br>
+
+| CLI | Command |
 |---|---|
-| **Any CLI, straight from GitHub** | `npx skills add chentaymane/handOff` (the open-source [`skills`](https://github.com/vercel-labs/skills) installer; add `-g` for all projects, `-a claude-code -a codex` to pick agents) |
-| **Claude Code plugin** | `/plugin install handoff --marketplace chentaymane/handOff`, or `/plugin marketplace add chentaymane/handOff` then `/plugin install handoff@handoff`. As a plugin, the skill is called `/handoff:handoff`. |
+| **Claude Code** | `/plugin install handoff --marketplace chentaymane/handOff` <br><sub>or `/plugin marketplace add chentaymane/handOff`, then `/plugin install handoff@handoff`</sub> |
+| **GitHub Copilot CLI** | `copilot plugin install chentaymane/handOff` |
 | **Gemini CLI** | `gemini skills install https://github.com/chentaymane/handOff --path skills/handoff` |
-| **One project, for your whole team** | copy `skills/handoff` into the repo's `.agents/skills/` and `.claude/skills/` and commit it |
-| **claude.ai or a skill marketplace** | `python3 install.py zip` writes `handoff-skill.zip`, ready to upload. Uploaded skills run in a sandbox without your session logs, so there the writing and resuming work and log recovery finds nothing. |
-| **Aider** (no skills support) | `aider --read ~/.agents/skills/handoff/SKILL.md` |
-| **Freebuff / Codebuff** (no skills support) | say "Read ~/.agents/skills/handoff/SKILL.md and follow it" |
+| **Codex** | `$skill-installer install https://github.com/chentaymane/handOff/tree/main/skills/handoff` |
+| **Any CLI, with Node.js** | `npx skills add chentaymane/handOff -g` |
+| **From a clone** | `git clone https://github.com/chentaymane/handOff && cd handOff && python3 install.py` |
+| **claude.ai, skill marketplaces** | `python3 install.py zip` builds `handoff-skill.zip` to upload |
 
 </details>
 
 ## Use it
 
-Just work as usual. The skill loads by itself when it's needed, or you can ask for it:
+There is nothing to learn. Work as usual; the skill loads when it's needed, or you ask for it:
 
-| You say | The agent |
+| You say | Your agent |
 |---|---|
-| "save progress", "write a handoff", "tokens almost finished", "I'm switching to Codex" | writes or updates `HANDOFF.md` |
-| "continue", "read the handoff", "pick up where we left off" | reads `HANDOFF.md`, checks it against git, and carries on |
-| "my last session hit the limit, recover it" | finds that session's log, from any CLI, and rebuilds the handoff from it |
+| *"save progress"*, *"write a handoff"*, *"tokens almost finished"* | writes or updates `HANDOFF.md` |
+| *"I'm switching to Codex"*, *"we'll continue tomorrow"* | writes it, and tells you how to resume |
+| *"continue"*, *"read the handoff"*, *"pick up where we left off"* | reads it, checks it against git, and carries on |
+| *"my last session hit the limit, recover it"* | finds that session's log, in any CLI, and rebuilds the handoff from it |
 
-Agents also write it on their own: when the context or usage budget runs low, right after a request fails on a limit, and at milestones of long tasks.
+It also writes the handoff on its own: when the context or usage budget runs low, the moment a request fails on a limit, and at milestones of long tasks.
 
-Calling it by name: `/handoff` in Claude Code, Cursor, Copilot CLI and Qwen Code, `$handoff` in Codex, `/skills` to list skills in Gemini CLI. Anywhere else, ask for "the handoff skill". [`references/clis.md`](skills/handoff/references/clis.md) has the details for each CLI.
+To call it by name: `/handoff` in Claude Code, Cursor, Copilot CLI and Qwen Code, `$handoff` in Codex. In any other CLI, ask for "the handoff skill".
 
-## What the skill does
+## Why handoff
 
-The skill is [`skills/handoff/SKILL.md`](skills/handoff/SKILL.md) plus a script, `scripts/handoff.py`, that the agent runs.
+You're deep into a task and the agent stops: *usage limit reached*. Or the credit runs out, the context is full, the session expires, the terminal crashes. The agent knew the goal, the plan, what it had tried and what came next. All of it is gone, and the next session starts from zero.
 
-- **Write:** the agent writes the parts only it knows (goal, where it stopped, next steps, decisions, what failed) from a fixed template, then runs `handoff.py now --tool <its CLI>`, which adds the facts from its own session log and git.
-- **Resume:** read `HANDOFF.md`, compare it with `git status` and `git log`, summarize in two lines, continue from "Next steps".
-- **Recover:** `handoff.py sessions` lists the project's recent sessions from every CLI. `handoff.py now --from LOG --print` turns the one that died into a digest, and the agent writes the handoff from it, saying which parts are reconstructed.
-- **Spread:** `handoff.py skill install` copies the skill into your other CLIs.
+- **Switch tools mid-task.** Write the handoff in Claude Code, continue in Codex, Cursor or Gemini CLI. `HANDOFF.md` is plain Markdown that every agent reads.
+- **Survives a session that dies.** Every CLI saves its conversation to disk. handoff reads the logs of nine of them, so even a session cut off with no warning can be turned into a handoff afterwards.
+- **Facts, not guesses.** Besides what the agent writes, the handoff records the files changed (including through shell commands and commits), the commands that ran, the errors, context and usage-limit use, and the exact state of the repo.
+- **Built for the next agent.** A fixed template puts the goal, where it stopped and the next steps first, with exact paths and errors instead of "the bug we found".
+- **Private.** Nothing leaves your computer, and API keys and passwords are masked before anything is written.
+- **No dependencies.** One folder, Python's standard library, nothing to configure.
 
-### What goes into HANDOFF.md
+## How it works
 
-The agent's own sections come first, then an auto section between two marker lines that the script rewrites; everything outside the markers is kept.
+```mermaid
+flowchart LR
+    A["You work in any CLI"] --> S["handoff skill"]
+    L["Session logs on disk<br/>Claude Code · Codex · Cursor · Gemini CLI<br/>Copilot CLI · OpenCode · Qwen Code · Freebuff · Aider"] -->|read by scripts/handoff.py| S
+    G["git"] --> S
+    S -->|"at milestones, when the budget runs low,<br/>when you ask"| F["HANDOFF.md"]
+    F --> N["Any other agent:<br/>Read HANDOFF.md and continue"]
+```
 
-| Section | What it contains |
-|---|---|
-| **Goal**, **Where we stopped**, **Next steps** | written by the agent: concrete paths, commands, exact errors |
-| **Decisions**, **Tried and failed**, **Key files**, **How to run** | written by the agent, so the next one doesn't undo or repeat them |
-| **Heads-up** (auto) | limit hit, usage at 91%, context 87% full |
-| **Goal** and **Where we stopped** (auto) | your first and latest request, the agent's last message and its own recap |
-| **Plan** (auto) | the agent's to-do list, with done and in-progress items marked |
-| **Files changed** (auto) | from the agent's edits *and* from the commits it made, so changes made through shell commands aren't missed |
-| **Recent commands**, **Errors seen** (auto) | what it ran, and what failed |
-| **Session** (auto) | tool, model, context used, usage limit and reset time, path to the full log |
-| **Repo** (auto) | branch, commit, ahead/behind, uncommitted files, commits made during the session |
+The skill is a standard folder, [`skills/handoff/`](skills/handoff): [`SKILL.md`](skills/handoff/SKILL.md) tells the agent when and how to write, resume and recover a handoff, and `scripts/handoff.py` does the mechanical part. The agent writes the parts only it knows, then runs the script, which adds the facts between two marker lines. Everything outside those lines is yours and is never changed.
 
 <details>
-<summary><b>See an example</b>: the auto section of a Codex session at 91% of its usage limit</summary>
+<summary><b>See an example HANDOFF.md</b></summary>
 
 ```markdown
+# HANDOFF: Stripe checkout
+
+**Updated:** 2026-09-16 15:42 CET | **By:** Codex / gpt-5.5 | **Status:** In progress
+
+## Goal
+Add Stripe checkout to the cart page and email a receipt after payment.
+Done means: test-mode payment works end to end and the receipt arrives.
+
+## Where we stopped
+Checkout works in test mode. `src/emails/receipt.html` still has placeholder
+text; `sendReceipt()` in `src/routes/checkout.ts:88` is wired but untested.
+
+## Next steps
+1. Fill in the receipt template (order lines, total, support link).
+2. Run `npm test -- checkout` and send a test receipt with `npm run mail:test`.
+3. Handle failed payments (`payment_intent.payment_failed` webhook).
+
+## Decisions and constraints
+- Stripe Checkout, not Elements: the user wants no card form on our site.
+
+## Tried and failed / gotchas
+- The webhook secret differs per `stripe listen` session; copy it into `.env` each time.
+
 <!-- handoff:auto:start -->
 ## Auto handoff
 
@@ -118,26 +138,10 @@ _Last update: 2026-09-16 15:42 +0100, from a **Codex** session (gpt-5.5)._
 
 **Heads-up:** 91% of the usage limit is used.
 
-### Goal
-> Add Stripe checkout to the cart page and email a receipt after payment
-
-### Where we stopped
-> Checkout works end to end in test mode. The receipt email is wired up,
-> but the template still has placeholder text.
-
-### Plan
-- [x] Create the checkout session endpoint
-- [x] Redirect the cart page to Stripe
-- [ ] **Send the receipt email** _(in progress)_
-- [ ] Handle failed payments
-
 ### Files changed in this session
 - `src/routes/checkout.ts` - added
 - `src/pages/cart.tsx` - edited
 - `src/emails/receipt.html` - added
-
-### Recent commands
-- `npm test -- checkout`
 
 ### Session
 - **Tool:** Codex (gpt-5.5), 48 tool calls
@@ -152,144 +156,112 @@ _Last update: 2026-09-16 15:42 +0100, from a **Codex** session (gpt-5.5)._
 
 </details>
 
-## Session logs it reads
+## Supported CLIs
 
-The skill works in any CLI that reads Agent Skills. The script can also read the session logs of these nine, which is what makes recovery and the auto section possible:
+| CLI | The skill installs into | Call it | Recovers its sessions |
+|---|---|---|---|
+| **Claude Code** | `~/.claude/skills` | `/handoff` | ✅ |
+| **Codex** | `~/.agents/skills` | `$handoff` | ✅ |
+| **Cursor** | `~/.agents/skills` | `/handoff` | ✅ |
+| **OpenCode** | `~/.agents/skills` | ask for it | ✅ |
+| **Gemini CLI** | `~/.agents/skills` | ask for it | 🧪 |
+| **GitHub Copilot CLI** | `~/.agents/skills` | `/handoff` | 🧪 |
+| **Qwen Code** | `~/.qwen/skills` | `/handoff` | 🧪 |
+| **Windsurf** | `~/.codeium/windsurf/skills` | ask for it | repo facts only |
+| **Antigravity, Amp, Goose, Factory Droid, Kiro CLI, Crush, Kilo Code, Roo Code, Augment, Trae, Continue, Junie, OpenHands** | each one's own skills folder | ask for it | repo facts only |
+| **Freebuff / Codebuff** | no skills folder: say *"Read ~/.agents/skills/handoff/SKILL.md and follow it"* | | 🧪 |
+| **Aider** | no skills folder: `aider --read ~/.agents/skills/handoff/SKILL.md` | | 🧪 |
 
-| CLI | Where it reads | Context | Usage limit | Tested |
-|---|---|---|---|---|
-| **Claude Code** (CLI, desktop, VS Code, JetBrains) | `~/.claude/projects` | measured | when a limit is hit | ✅ real sessions |
-| **Codex** (CLI, IDE extension, app) | `~/.codex/sessions` | exact | **% used before you hit it**, with reset time | ✅ real sessions |
-| **Cursor** | `~/.cursor` transcripts and `state.vscdb` | exact | when a limit is hit | ✅ real sessions |
-| **OpenCode** | `~/.local/share/opencode/opencode.db` | measured | when a limit is hit | ✅ real sessions |
-| **Gemini CLI** | `~/.gemini/tmp/*/chats` | measured | when a quota is hit | 🧪 sample logs |
-| **Qwen Code** | `~/.qwen/tmp/*/chats` | measured | when a limit or quota is hit | 🧪 sample logs |
-| **GitHub Copilot CLI** | `~/.copilot/session-state` | when logged | when a rate limit is hit | 🧪 sample logs |
-| **Freebuff** / **Codebuff** | `~/.config/manicode/projects` | measured | when credits run out | 🧪 sample logs |
-| **Aider** | `.aider.chat.history.md` in each project | from its token report | when a rate limit is hit | 🧪 sample logs |
+✅ tested on real sessions · 🧪 built from the CLI's source or published log format and tested on sample logs. If one misreads your sessions, please [open an issue](https://github.com/chentaymane/handOff/issues).
 
-✅ tested on real sessions. 🧪 built from the tool's source code or published log format and tested on sample logs; please [open an issue](https://github.com/chentaymane/handOff/issues) if one misreads your sessions.
+The installer only installs where a CLI is present. Codex, Cursor, Gemini CLI, Copilot CLI and OpenCode all read the shared `~/.agents/skills` folder, so one copy serves all five. [`references/clis.md`](skills/handoff/references/clis.md) lists every folder and the log locations.
 
-In other CLIs (Windsurf, Goose, Amp, Kiro and so on) the skill still writes and resumes handoffs; the script adds only the repo facts there (`now --repo-only`).
+## Optional: automatic protection
 
-## Optional: the watcher and the dashboard
-
-A skill only runs while the agent is alive and remembers to use it, and a usage limit can end a session mid-step. For that case, the same script includes a small background watcher. It reads the logs of all nine CLIs every 5 seconds and refreshes each project's `HANDOFF.md` after every step, with a desktop alert when a limit hits, so the handoff is already there when a session dies.
+A skill only runs while the agent is alive, and a usage limit can end a session mid-step. For that, the same script includes a small background watcher. It reads the logs of all nine CLIs and refreshes each project's `HANDOFF.md` after every step, with a desktop alert when a limit hits, so the handoff is already there when a session dies. The skill offers it when it would help, and only sets it up if you say yes. You can also run it yourself:
 
 ```bash
-python3 skills/handoff/scripts/handoff.py install
+python3 ~/.agents/skills/handoff/scripts/handoff.py install     # watcher + `handoff` command + start at login
+handoff dashboard                                               # local page with every project's context, limits and handoff
+handoff uninstall                                               # remove the watcher again
 ```
 
-This adds a `handoff` command, starts the watcher, and starts it at every login. The skill offers it to you when it would help, and only runs it if you say yes.
+<img src="assets/dashboard.png" alt="The handoff dashboard: one card per project with context use, usage limits, alerts and HANDOFF.md status" width="900">
 
-When it writes:
-
-- **After every step:** when an agent has been quiet for 20 seconds, it just finished a step, so `HANDOFF.md` is at most one step behind.
-- **Right away, with a desktop alert,** when a limit or quota is hit, credits run out, the context passes 70% or 85%, or Codex's usage passes 80% or 95%.
-- **Only for real work:** at least one changed file, three commands, two requests, or a limit hit; and only for sessions active after the watcher started.
-- **Never** in your home folder, a drive root, temp folders or agents' settings folders. An empty `.nohandoff` file keeps a project out too.
-
-`handoff dashboard` opens a local page at `http://127.0.0.1:7788` with one card per project: which CLI, the goal, a context bar, the usage limit, alerts, how old its `HANDOFF.md` is, and buttons to write it now or copy the prompt that resumes the work elsewhere. It's served from your computer only and refuses requests from other websites.
+The watcher writes after an agent has been quiet for 20 seconds (it just finished a step), right away when a limit is hit or the context passes 70% or 85%, only for real work, and never in your home folder, temp folders or agents' settings folders. An empty `.nohandoff` file keeps a project out.
 
 ## Commands
 
-Run them as `python3 skills/handoff/scripts/handoff.py COMMAND` from the clone (or from any installed copy of the skill), or as `handoff COMMAND` after `handoff.py install`.
+Agents run these for you. To run one yourself: `python3 ~/.agents/skills/handoff/scripts/handoff.py COMMAND` (on Windows, `python` instead of `python3`), or `handoff COMMAND` once the watcher is installed.
 
 | Command | What it does |
 |---|---|
-| `skill install` / `uninstall` / `status` | Copy the skill into every coding CLI found, remove it, or show where it is (`--only claude,agents`, `--dry-run`) |
-| `skill zip` | Package the skill as `handoff-skill.zip` for uploading |
-| `now` | Write the auto section of `HANDOFF.md` for this folder from its latest session (`--print` to only show it) |
-| `now --tool AGENT` | ... from this folder's latest session of one CLI: `claude`, `codex`, `cursor`, `gemini`, `opencode`, `qwen`, `copilot`, `codebuff`, `aider` |
-| `now --repo-only` | ... with git facts only |
-| `now --from LOG` | ... from one specific session log |
+| `now --tool AGENT` | Write the facts section of `HANDOFF.md` from this folder's latest session of one CLI (`claude`, `codex`, `cursor`, `gemini`, `opencode`, `qwen`, `copilot`, `codebuff`, `aider`) |
+| `now` | The same, from the newest session of any CLI (`--print` shows it instead of writing) |
+| `now --from LOG` | The same, from one specific session log |
+| `now --repo-only` | Git facts only, for CLIs whose logs handoff can't read |
 | `sessions` | This folder's recent sessions from every CLI, with their log paths |
-| `status` | Recent sessions on this computer: context, usage limit, `HANDOFF.md` age |
-| `install` / `uninstall` | Set up or remove the watcher, the `handoff` command and start at login (your `HANDOFF.md` files are kept) |
-| `dashboard` | Open the dashboard (`--port 7788`, `--no-open`) |
-| `start` / `stop` / `watch` / `autostart on\|off` | Control the watcher by hand |
+| `status` | Recent sessions on this computer: context used, usage limits, `HANDOFF.md` age |
+| `skill install` · `skill status` · `skill uninstall` | Install the skill into every CLI found, show where it is, or remove it (`--only claude,agents`, `--dry-run`) |
+| `skill zip` | Package the skill as `handoff-skill.zip` |
+| `install` · `uninstall` · `dashboard` | The optional watcher, see above |
 
-## Privacy and safety
+## Privacy and security
 
-- **Nothing leaves your computer.** No account, no network calls, no telemetry. It reads files and writes files.
-- **Secrets are masked** before writing: `sk-`, `ghp_`, `AKIA`, `AIza` and `xox` keys, JWTs, `password=`-style values, and credentials in URLs. The skill also tells agents never to write secrets.
-- **Agent data is read-only.** Databases are opened in read-only mode, so `handoff` can never block or change your agents.
-- **Your notes are safe.** The script only rewrites the section between its markers.
-- **The installer is careful.** It never replaces a skill folder that holds a different skill, and `uninstall` removes only its own folders.
-
-## Configuration
-
-Nothing is required. These environment variables are optional:
-
-| Variable | What it does |
-|---|---|
-| `HANDOFF_HOME` | Where the watcher keeps its own files (default `~/.handoff`: `handoff.log`, `state.json`, `watch.pid`) |
-| `HANDOFF_SCAN` | Folders to search for Aider projects, separated like `PATH` (default: your home folder and `Desktop`, `Documents`, `projects`, `code`, `src`, `dev`, `work`, `repos` and a few more, two levels deep) |
-| `CODEX_HOME` | Codex's data folder, if you moved it |
-| `FREEBUFF_CONFIG_DIR` | Freebuff's data folder, if you moved it |
+- **Nothing leaves your computer.** No account, no network calls, no telemetry. The only download is the installer fetching this repository from GitHub.
+- **Secrets are masked** before anything is written: `sk-`, `ghp_`, `AKIA`, `AIza` and `xox` keys, JWTs, `password=`-style values and credentials in URLs. The skill also tells agents never to write secrets.
+- **Agents' data is read-only.** Session databases are opened read-only, so handoff can never block or change your agents.
+- **Your notes are safe.** The script only rewrites the lines between its markers.
+- **A careful installer.** It never replaces a folder that holds a different skill, and uninstalling removes only its own folders.
 
 ## FAQ
 
 <details>
-<summary><b>Is it a skill or an app?</b></summary>
+<summary><b>Do I need Python?</b></summary>
 
-A skill first: `skills/handoff` is a standard Agent Skill folder (`SKILL.md`, `scripts/`, `references/`) that any CLI supporting skills can load, and it's self-contained, so copying the folder is all an install is. The background watcher is an optional extra inside the same script, for sessions that end before the agent can act.
+For the one-command installer and for the script that reads session logs, yes: 3.8 or newer, which macOS and most Linux systems already have. Without Python, `npx skills add chentaymane/handOff -g` installs the skill, and agents still write and resume `HANDOFF.md` from the instructions in `SKILL.md`.
 </details>
 
 <details>
-<summary><b>Why does the skill need Python?</b></summary>
+<summary><b>Does it work with a CLI that isn't in the table?</b></summary>
 
-Only for its script, which reads session logs and git. Without Python, the agent still writes and resumes `HANDOFF.md` from the instructions in `SKILL.md`, and adds the repo state from `git status` itself.
+If the CLI reads Agent Skills, yes: copy `skills/handoff` into its skills folder. The agent writes and resumes handoffs as usual; the script adds the repo state, but can't read that CLI's logs. If the CLI has no skills support at all, tell it to read `~/.agents/skills/handoff/SKILL.md`.
 </details>
 
 <details>
-<summary><b>Cursor or OpenCode shows the skill twice.</b></summary>
+<summary><b>Cursor or OpenCode lists the skill twice.</b></summary>
 
-They read both `~/.claude/skills` and `~/.agents/skills`, and the installer puts a copy in each so Claude Code and the others all get it. Both copies are the same. To keep one, run `python3 install.py uninstall --only claude` (Claude Code then loses it) or ignore the duplicate.
-</details>
-
-<details>
-<summary><b>Why does only Codex show a usage percentage?</b></summary>
-
-Because only Codex writes it into its logs. Claude Code, Cursor and the others only say something once the limit is hit. For them the skill writes checkpoints as it goes, and the watcher, if you use it, refreshes the file after every step.
+They read both `~/.claude/skills` and `~/.agents/skills`, and the installer puts a copy in each so that Claude Code gets one too. Both copies are identical, so either one works.
 </details>
 
 <details>
 <summary><b>Should I commit HANDOFF.md?</b></summary>
 
-Your choice. Committing it lets a teammate or another machine pick up the work. If you'd rather not, add `HANDOFF.md` to `.gitignore`; `handoff` doesn't count it as an uncommitted change either way.
+Your choice. Committing it lets a teammate or another machine pick up the work. If you'd rather not, add it to `.gitignore`. The agent asks before committing it.
 </details>
 
 <details>
-<summary><b>The context percentage for Claude Code says "window size assumed". Why?</b></summary>
+<summary><b>Why does only Codex show a usage percentage?</b></summary>
 
-Claude Code logs how many tokens are in use, but not how big the window is. `handoff` assumes 200K, and 1M once a session goes past 200K or the model name ends in `[1m]`.
+Only Codex writes its usage percentage into its logs. The other CLIs only log the moment a limit is hit, which is why the skill writes checkpoints as it goes.
 </details>
 
-## Add another CLI
+<details>
+<summary><b>How do I update or remove it?</b></summary>
 
-Each CLI the script reads has one reader in [`skills/handoff/scripts/handoff/sources/`](skills/handoff/scripts/handoff/sources) with the same three functions:
-
-```python
-def discover(max_age_hours):  # yield (ref, stamp) for each session; stamp changes whenever the session does
-def read(ref):                # return a Session: requests, replies, plan, files, commands, errors, tokens, limits
-def folder(ref):              # the session's project folder, found cheaply
-```
-
-Add the module to `MODULES` in [`sources/__init__.py`](skills/handoff/scripts/handoff/sources/__init__.py) and a test with a small sample log, and it shows up everywhere. To install the skill into another CLI's skills folder, add a line to `TARGETS` in [`skill.py`](skills/handoff/scripts/handoff/skill.py).
+Run the install command again to update every copy. To remove it from every CLI:
 
 ```bash
-python3 -m unittest discover -s tests -t .
+python3 ~/.agents/skills/handoff/scripts/handoff.py skill uninstall
 ```
 
-## Releasing a new version
+Your `HANDOFF.md` files are kept.
+</details>
 
-The version lives in four places, and the tests fail if they disagree: `skills/handoff/SKILL.md` (`metadata.version`), `skills/handoff/scripts/handoff/__init__.py`, `.claude-plugin/plugin.json` and `pyproject.toml`. Then run `claude plugin validate .` for the Claude Code marketplace, and `python3 install.py zip` for an upload package.
+## Contributing
 
-## Uninstall
+Bug reports, misread session logs and new CLIs are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the layout, the tests and how to add a CLI, and [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 
-```bash
-python3 install.py uninstall
-```
+## License
 
-This removes the skill from every CLI's skills folder. If you set up the watcher, `handoff uninstall` stops it, turns off autostart and removes the `handoff` command. Your `HANDOFF.md` files stay.
+[MIT](LICENSE) © 2026 chentaymane

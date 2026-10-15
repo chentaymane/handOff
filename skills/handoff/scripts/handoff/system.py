@@ -1,4 +1,4 @@
-"""Where the app keeps its files, plus the OS-specific parts: notifications, background, autostart."""
+"""Where the watcher keeps its files, plus the OS-specific parts: notifications, background, autostart."""
 
 import datetime
 import json

@@ -4,18 +4,32 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "handoff-app"
-version = "2.0.0"
-description = "An agent skill and app that keep HANDOFF.md current from your coding agents' session logs, so the work survives context limits, credit limits and crashes."
+version = "2.1.0"
+description = "An Agent Skill that keeps HANDOFF.md current from your coding agents' session logs, so the work survives context limits, credit limits and crashes."
 readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "chentaymane"}]
 requires-python = ">=3.8"
 dependencies = []
 keywords = ["agent-skills", "skill", "claude-code", "codex", "cursor", "gemini-cli", "opencode", "qwen-code", "copilot-cli", "aider", "freebuff", "codebuff", "ai-agents", "handoff", "developer-tools"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development",
+    "Topic :: Utilities",
+]
 
 [project.scripts]
 handoff = "handoff.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/chentaymane/handoff"
+Homepage = "https://github.com/chentaymane/handOff"
+Issues = "https://github.com/chentaymane/handOff/issues"
+Changelog = "https://github.com/chentaymane/handOff/blob/main/CHANGELOG.md"
 
 # The package lives inside the skill folder, so the skill is self-contained when copied into a CLI.
 [tool.setuptools]

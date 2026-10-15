@@ -11,6 +11,8 @@ from pathlib import Path
 from . import __version__, app, render, skill, sources, system
 from .watch import Watcher
 
+PYTHON = "python" if os.name == "nt" else "python3"  # what people type to run Python on this system
+
 EXAMPLES = """\
 examples:
   handoff skill install      copy this skill into every coding CLI on this computer
@@ -27,7 +29,7 @@ def prog():
     """How this copy was started, for the commands it suggests: `handoff`, the skill's script, or install.py."""
     script = Path(sys.argv[0])
     if script.name in ("handoff.py", "install.py"):
-        return f"{'python' if os.name == 'nt' else 'python3'} {script}"
+        return f"{PYTHON} {script}"
     return "handoff"
 
 
@@ -181,13 +183,16 @@ def cmd_skill(args):
                   "Run it from the cloned repository or from an installed copy of the skill.")
             return 1
         version = skill.frontmatter(skill.SKILL_DIR).get("version")
-        print(f"handoff skill {version}, from {app.short_path(skill.SKILL_DIR)}\n")
+        print(f"handoff skill {version}" + (" - dry run, nothing is changed" if args.dry_run else "") + "\n")
         results = skill.install(only, args.dry_run)
         show(results)
-        if not args.dry_run and any(note.startswith(("installed", "updated", "reinstalled")) for _, note in results):
-            print("\nStart a new session in any of these CLIs. The skill loads by itself when you say things like")
-            print('"save progress", "tokens almost finished" or "continue", or call it by name:')
-            print("/handoff in Claude Code, Copilot CLI and Qwen Code, $handoff in Codex, /skills in Gemini CLI.")
+        done = [target for target, note in results if note.startswith(("installed", "updated", "reinstalled"))]
+        if done and not args.dry_run:
+            copy = next((target for target in done if target["key"] == "agents"), done[0])["folder"]
+            print("\nDone. Open a new session in any of these CLIs and say \"save progress\" or \"continue\".")
+            print("Call it by name: /handoff in Claude Code, Cursor, Copilot CLI and Qwen Code; $handoff in Codex.")
+            print("Update: run the installer again.")
+            print(f'Remove: {PYTHON} "{copy / "scripts" / "handoff.py"}" skill uninstall')
         return 1 if any(note.startswith("failed") for _, note in results) else 0
     if action == "uninstall":
         results = skill.uninstall(only)
@@ -274,7 +279,7 @@ def cmd_uninstall(args):
     removed = system.remove_launcher()
     if removed:
         print(f"Removed {removed}")
-    print(f"HANDOFF.md files in your projects are kept. The app's own files are in {system.APP_DIR}.")
+    print(f"HANDOFF.md files in your projects are kept. The watcher's own files are in {system.APP_DIR}.")
     return 0
 
 

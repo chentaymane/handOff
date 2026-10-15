@@ -1,0 +1,9 @@
+interface:
+  display_name: "Handoff"
+  short_description: "Save and resume work across coding agents with HANDOFF.md"
+  icon_small: "./assets/icon.svg"
+  brand_color: "#0d9488"
+  default_prompt: "Save our progress to HANDOFF.md so another agent can continue."
+
+policy:
+  allow_implicit_invocation: true

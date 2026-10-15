@@ -27,12 +27,16 @@ Codex, Cursor, Gemini CLI, Copilot CLI and OpenCode all read the shared `~/.agen
 
 To give everyone who clones a repository the skill, copy the `handoff` folder into the repository's `.agents/skills/` (Codex, Cursor, Gemini CLI, Copilot CLI, OpenCode) and `.claude/skills/` (Claude Code), and commit it.
 
-## Other ways to install
+## Ways to install
 
-- **Any CLI, from GitHub:** `npx skills add chentaymane/handoff` (the open-source `skills` installer; `-a claude-code -a codex` picks agents, `-g` installs for the user instead of the project).
-- **Claude Code plugin:** `/plugin marketplace add chentaymane/handoff`, then `/plugin install handoff@handoff`. As a plugin, the skill is called `/handoff:handoff`.
-- **Gemini CLI:** `gemini skills install https://github.com/chentaymane/handoff --path skills/handoff`.
+- **Every CLI on the computer, one command:** `curl -fsSL https://raw.githubusercontent.com/chentaymane/handOff/main/install.sh | sh` (macOS, Linux) or `irm https://raw.githubusercontent.com/chentaymane/handOff/main/install.ps1 | iex` (Windows PowerShell). Run it again to update.
+- **Any CLI, with Node.js:** `npx skills add chentaymane/handOff -g` (the open-source `skills` installer; `-a claude-code -a codex` picks agents).
+- **Claude Code plugin:** `/plugin marketplace add chentaymane/handOff`, then `/plugin install handoff@handoff`. As a plugin, the skill is called `/handoff:handoff`.
+- **GitHub Copilot CLI plugin:** `copilot plugin install chentaymane/handOff`.
+- **Gemini CLI:** `gemini skills install https://github.com/chentaymane/handOff --path skills/handoff`.
+- **Codex:** ask `$skill-installer install https://github.com/chentaymane/handOff/tree/main/skills/handoff`, then restart Codex.
 - **Upload as a zip** (claude.ai and skill marketplaces): `scripts/handoff.py skill zip` writes `handoff-skill.zip`. Uploaded skills run in a sandbox without your session logs, so there the writing and resuming parts work and the log-reading commands find nothing.
+- **Remove it:** `python3 ~/.agents/skills/handoff/scripts/handoff.py skill uninstall` removes every copy the installer made.
 
 ## Environment variables
 

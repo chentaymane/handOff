@@ -1,11 +1,12 @@
 {
   "name": "handoff",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Save and resume work across coding agents with HANDOFF.md: write it before a context or usage limit hits, resume from it in any CLI, and recover sessions that died, from Claude Code, Codex, Cursor, Gemini CLI, Copilot CLI, OpenCode, Qwen Code, Freebuff or Aider logs.",
   "author": {
     "name": "chentaymane"
   },
-  "homepage": "https://github.com/chentaymane/handoff",
-  "repository": "https://github.com/chentaymane/handoff",
+  "homepage": "https://github.com/chentaymane/handOff",
+  "repository": "https://github.com/chentaymane/handOff",
+  "license": "MIT",
   "keywords": ["handoff", "context", "usage-limit", "session", "codex", "gemini-cli", "cursor", "agent-skills"]
 }

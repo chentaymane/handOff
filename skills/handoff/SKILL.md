@@ -1,11 +1,12 @@
 ---
 name: handoff
 description: Save and resume work across coding agents with HANDOFF.md, a handoff file at the project root holding the goal, where we stopped, next steps, decisions and failed attempts. Use it to write or update HANDOFF.md when the context window or usage or credit budget runs low, when the user says "save progress", "write a handoff", "tokens almost finished", "context is full", "I'm switching to Codex/Claude/Gemini" or "we'll continue later", at milestones of long tasks, and before stopping with work unfinished. Use it to resume when the user says "continue", "pick up where we left off" or "read the handoff", or a HANDOFF.md exists. Use it to recover a session that ended on a limit, expiry or crash in Claude Code, Codex, Cursor, Gemini CLI, Copilot CLI, OpenCode, Qwen Code, Freebuff or Aider; its bundled script reads their session logs.
+license: MIT (see LICENSE.txt)
 compatibility: Any agent that reads Agent Skills (SKILL.md). The bundled script needs Python 3.8+ (standard library only) and uses git when it is there.
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
   author: chentaymane
-  homepage: https://github.com/chentaymane/handoff
+  homepage: https://github.com/chentaymane/handOff
 ---
 
 # Handoff

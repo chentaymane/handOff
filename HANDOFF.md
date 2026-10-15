@@ -1,76 +1,72 @@
 # HANDOFF: handoff (chentaymane/handOff)
 
-**Updated:** 2026-10-15 14:25 UTC | **By:** Claude Code (Windows desktop app) / claude-opus-5-5 | **Status:** Working, committed and pushed to `main`
+**Updated:** 2026-10-15 14:50 UTC | **By:** Claude Code (Windows desktop app) / claude-opus-5-5 | **Status:** Released v2.1.0 (committed, pushed, tagged)
 
 > **Next agent:** read this whole file, check it against the repo (`git status`), then continue from "Next steps". Keep this file updated as you work.
 
 ## Goal
-Make handoff an **Agent Skill** that works across many coding CLIs and can be distributed (the user wants to share or sell it as a skill). The user's words, 2026-10-15: "can you make it a skill because iwana buyit like a skill please do your best to make it a skil can use it with a multiples cli".
+A professional, sellable Agent Skill that installs from the command line in one step, works across many coding CLIs, and has a professional README. The user's words, 2026-10-15: "i want it like the profesionel skils like i can download just from the cli because i wana sell it do aprofesionel readme fix all detaills make it perfect". Before that: "make it a skill ... can use it with a multiples cli" (2.0.0, pushed as `eacad9b`).
 
-This reverses the 2026-09-29 decision ("i wanna don't be skill, i need it to be a app"). Nothing of the app was dropped: the app became the skill's bundled script, and the background watcher is now an optional extra the skill offers.
-
-Done means: one self-contained skill folder that any CLI reading SKILL.md can load; a one-command installer for every CLI on the machine; Claude Code plugin marketplace, `npx skills add`, Gemini `gemini skills install` and zip upload all work from the GitHub repo.
+The user chose the **MIT license** and has **no payment page yet** (so the README has no pricing or buy link).
 
 ## Where we stopped
-- All work is done, verified, committed on `main` as "Turn handoff into a cross-CLI Agent Skill" and pushed to `origin/main` (github.com/chentaymane/handOff). `gh` is logged in on this PC as chentaymane.
-- The skill is installed for real on this PC (Windows 10): `~/.claude/skills/handoff`, `~/.agents/skills/handoff`, `~/.gemini/antigravity/skills/handoff`, all version 2.0.0. They replaced the old September copies (the Claude-only `snapshot.py` / `recover.py` version). Claude Code hot-reloaded the new SKILL.md in the running session.
+- Version 2.1.0 is committed on `main` ("Release 2.1.0: one-command install, MIT license, professional README"), pushed, tagged `v2.1.0`, and published as a GitHub release with `handoff-skill.zip` attached (https://github.com/chentaymane/handOff/releases/tag/v2.1.0). The one-command installers now serve 2.1.0.
+- This PC's installed copies are 2.1.0 (`~/.claude/skills/handoff`, `~/.agents/skills/handoff`, `~/.gemini/antigravity/skills/handoff`).
 
 ## Next steps
-1. Check the installs from GitHub: `npx skills add chentaymane/handOff --list` should find `skills/handoff`, and `/plugin install handoff --marketplace chentaymane/handOff` should install in Claude Code.
-2. Test the skill in a real Codex, Gemini CLI, Cursor, Copilot CLI and OpenCode session (all have data folders on this PC, none on PATH in Git Bash): start a session, check the skill is listed, say "save progress".
-3. Optional: add a LICENSE before selling or publishing (there is none; don't invent one, ask the user which).
+1. Check the first CI run of `.github/workflows/tests.yml` (`gh run list --workflow tests.yml`). macOS and Python 3.8 had never run these tests; fix anything red, since the README shows the badge.
+2. Offer to set the GitHub repo description and topics (`gh repo edit --description ... --add-topic agent-skills,claude-code,codex,...`). It's public, so ask first.
+3. Test the skill in real Codex, Gemini CLI, Cursor, Copilot CLI and OpenCode sessions (data folders exist on this PC; none of the CLIs are on PATH in Git Bash).
 4. From before: check the Qwen Code, Copilot CLI, Freebuff, Aider and Gemini CLI log readers against real logs.
 
 ## Done so far
-- [x] Moved the package `handoff/` to `skills/handoff/scripts/handoff/` with `git mv`, so the skill folder is self-contained. `pyproject.toml` uses `package-dir = {"" = "skills/handoff/scripts"}`; `tests/__init__.py` puts that folder on `sys.path`. A wheel built with `pip wheel . --no-deps --no-build-isolation` contains every module and `dashboard.html`.
-- [x] `skills/handoff/SKILL.md`: write / resume / recover / protect / install-elsewhere, with the template from the old skill. Frontmatter: name, description (837 chars, limit 1024), compatibility, `metadata.version: "2.0.0"`.
-- [x] `skills/handoff/references/clis.md`: each CLI's skills folder, how to call the skill, which logs the script reads, the `--tool` name.
-- [x] `skills/handoff/scripts/handoff.py`: entry script (puts its folder on `sys.path`, runs `handoff.cli.main`).
-- [x] New `handoff/skill.py`: `install` / `uninstall` / `status` / `make_zip`, with `TARGETS` (17 CLI folders). `~/.agents/skills` is always installed; the others only when the CLI's home folder exists. Never replaces a folder whose SKILL.md has a different `name`. Updates in place file by file and deletes stale files.
-- [x] CLI: `now --tool AGENT` (accepts names like "Claude Code", "gemini-cli", "freebuff"), `now --repo-only`, automatic fallback to a repo-only section when `--tool` finds no session, new `sessions` command, `skill install|uninstall|status|zip`. Suggested commands print as `python <path>/handoff.py ...` when run through the script.
-- [x] `install.py` at the root: `python3 install.py` = `skill install`; also `--dry-run`, `status`, `uninstall`, `zip`.
-- [x] `.claude-plugin/plugin.json` and `marketplace.json` (plugin source `./`). `claude plugin validate .` passed.
-- [x] `render.AGENT_DIRS` includes `.agents`; the auto section says "Written by handoff" instead of "handoff app".
-- [x] README rewritten skill-first: install table, other install ways, how to use it, what goes into HANDOFF.md, logs it reads, the optional watcher and dashboard, commands, FAQ, releasing.
-- [x] Tests: 78 pass (64 old, 14 new in `tests/test_skill.py`: SKILL.md format and limits, version agreement across 4 files, installer in a fake home, zip layout, tool aliases, per-tool lookup, repo-only section).
+- [x] 2.0.0 (`eacad9b`, pushed): the engine moved into `skills/handoff/scripts/handoff/`; `SKILL.md`, `references/clis.md`, `skill.py` installer (17 CLI targets), `install.py`, `now --tool` / `--repo-only` / `sessions`, `.claude-plugin/` manifests.
+- [x] `install.sh` (macOS, Linux; `curl -fsSL .../install.sh | sh`) and `install.ps1` (Windows; `irm .../install.ps1 | iex`). Each finds Python 3.8+, downloads `https://github.com/chentaymane/handOff/archive/<ref>` (`.tar.gz` / `.zip`), runs `install.py`, and deletes its temp folder. `HANDOFF_REF` and `HANDOFF_ARCHIVE` (URL or local file) override. Options pass through (`| sh -s -- --dry-run`; scriptblock form in PowerShell).
+- [x] Tested: `cat install.sh | sh` in Git Bash with a local archive and with the real GitHub URL; `install.ps1` via `iex` in PowerShell 7.5 (local zip, scriptblock with options) and Windows PowerShell 5.1 (real GitHub URL); all into fake home folders. No temp folders left behind.
+- [x] Tested against the live repo: `npx -y skills@latest add chentaymane/handOff --list` finds the skill; `claude plugin marketplace add chentaymane/handOff` + `claude plugin install handoff@handoff`, and `claude plugin install handoff --marketplace chentaymane/handOff`, both install it (isolated `CLAUDE_CONFIG_DIR`).
+- [x] Researched (not tested; CLIs not installed here): `copilot plugin install chentaymane/handOff` (Copilot reads `.claude-plugin/plugin.json` and `marketplace.json`), Codex `$skill-installer install https://github.com/chentaymane/handOff/tree/main/skills/handoff`, `gemini skills install ... --path skills/handoff`.
+- [x] `skills/handoff/agents/openai.yaml` (Codex display name, description, `./assets/icon.svg`, brand color `#0d9488`), `skills/handoff/assets/icon.svg` (the logo).
+- [x] MIT `LICENSE` at the root and an identical `skills/handoff/LICENSE.txt` (travels with every installed copy); `license` in SKILL.md frontmatter, plugin.json and pyproject (plus authors, classifiers, project URLs).
+- [x] `CHANGELOG.md` (1.0.0 to 2.1.0, from git history), `CONTRIBUTING.md` (layout, tests, adding a CLI, releasing), `.gitattributes` (`*.sh eol=lf`), `.github/workflows/tests.yml` (Linux, macOS and Windows on Python 3.10 and 3.13, Ubuntu 22.04 on 3.8, `shellcheck`, both installers end to end).
+- [x] `assets/demo.svg`: two terminal windows (Claude Code hits the limit after saving HANDOFF.md; Codex continues). Checked in the browser pane.
+- [x] README rewritten for buyers: hero with badges and demo, one-command install, in-CLI install table, use, why, mermaid diagram, example HANDOFF.md, supported CLIs, optional watcher with the dashboard screenshot, commands, privacy, FAQ, contributing, license.
+- [x] Installer output ends with how to call, update and remove the skill. All repo URLs use `chentaymane/handOff`. Version 2.1.0 everywhere.
+- [x] 81 tests pass (adds README badge, CHANGELOG and license agreement; Codex icon exists; `install.sh` LF and URLs). `claude plugin validate .` passes with no advice. Wheel builds as `handoff_app-2.1.0`.
 
 ## Decisions and constraints
-- Skill first, and the engine is bundled inside it, because skills must be self-contained to install by copying, by `npx skills`, as a plugin or as a zip.
-- One copy in `~/.agents/skills` serves Codex, Cursor, Gemini CLI, Copilot CLI and OpenCode (checked in their docs on 2026-10-15); Claude Code needs `~/.claude/skills`. Cursor and OpenCode may list the skill twice, accepted (README FAQ explains it). Not installing into `~/.codex/skills` or `~/.gemini/skills`, to avoid more duplicates.
-- Copies, not symlinks: Windows symlinks need admin or developer mode.
-- The watcher stays opt-in: the skill must ask the user before `install`, since it adds a background process and a login item.
-- Version lives in 4 places and the tests enforce they agree: SKILL.md `metadata.version`, `handoff/__init__.py`, `.claude-plugin/plugin.json`, `pyproject.toml`.
-- From before, still true: one reader per agent in `sources/` with `discover` / `read` / `folder`; databases opened read-only; the script only writes between its marker lines; never write in home, drive roots, temp or agent folders.
+- MIT, chosen by the user over "free personal / paid business" and "proprietary". No buy link or pricing in the README until the user has a payment page.
+- No Codex plugin manifest (`.codex-plugin/plugin.json`): its required `interface` fields couldn't be verified (official docs unreachable), and Codex already reads `~/.agents/skills`.
+- The version badge is static so it can't show "no releases"; the tests keep it equal to the package version.
+- Version lives in 5 places, all checked by tests: SKILL.md `metadata.version`, `handoff/__init__.py`, `.claude-plugin/plugin.json`, `pyproject.toml`, the README badge (plus a CHANGELOG heading).
+- From before, still true: skill first with the engine bundled; one copy in `~/.agents/skills` serves Codex, Cursor, Gemini CLI, Copilot CLI and OpenCode; copies, not symlinks; the watcher is opt-in; one reader per agent in `sources/`; the script only writes between its marker lines.
 
 ## Tried and failed / gotchas
-- On this PC, Python heredocs in Bash tool commands turn `\\` into `\` and can fail on quotes; write patch scripts to a file in the scratchpad and run them, or use the Edit tool.
-- `claude` is not on PATH in Git Bash; the binary is `%APPDATA%\Claude\claude-code\<version>\<hash>\claude.exe`.
-- The Windows login item `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\handoff-watch.vbs` points at `C:\Users\chent\Desktop\Memory-Skill`, which no longer exists, so it does nothing. Left alone; `handoff autostart off` removes it.
-- From before: `pkill -f PATTERN` kills the Bash tool's own shell; reader tests must redirect every path they scan; never screenshot the user's real sessions for the README.
+- Network on this PC blipped once: `curl` said "Could not resolve host: github.com" and `claude plugin marketplace add` failed with an access-rights message at the same moment. Both worked on retry. The first `git push` also dropped mid-transfer; `git -c http.postBuffer=524288000 push` worked.
+- The browser pane opens local files as data URLs: relative image paths don't load, and files outside the project folder can't be screenshotted. Put a temporary preview inside the project and delete it afterwards.
+- In SVG, a gradient stroke on a horizontal line needs `gradientUnits="userSpaceOnUse"` (its bounding box has no height), and runs of spaces collapse unless `white-space: pre` / `xml:space="preserve"`.
+- Windows PowerShell 5.1 turns native stderr into errors under `$ErrorActionPreference = 'Stop'`; the Python check in `install.ps1` is wrapped in try/catch for that.
+- From before: Python heredocs in Bash tool commands mangle backslashes (write patch scripts to files); `claude` is at `%APPDATA%\Claude\claude-code\<version>\<hash>\claude.exe`; the stale login item `handoff-watch.vbs` points at the deleted `Desktop\Memory-Skill`.
 
 ## Key files
-- `skills/handoff/SKILL.md` - the skill itself
-- `skills/handoff/references/clis.md` - per-CLI folders and invocation
-- `skills/handoff/scripts/handoff.py` - what agents run
-- `skills/handoff/scripts/handoff/skill.py` - the cross-CLI installer and zip
-- `skills/handoff/scripts/handoff/cli.py` - all commands
-- `skills/handoff/scripts/handoff/sources/` - one reader per CLI's session logs
-- `skills/handoff/scripts/handoff/render.py`, `watch.py`, `app.py`, `system.py`, `dashboard.py` - the auto section, watcher, shared logic, OS parts, dashboard
-- `install.py`, `.claude-plugin/`, `pyproject.toml`, `tests/test_skill.py`
+- `skills/handoff/SKILL.md`, `references/clis.md`, `agents/openai.yaml`, `LICENSE.txt` - the skill
+- `skills/handoff/scripts/handoff.py`, `scripts/handoff/` - the engine (`cli.py`, `skill.py`, `sources/`, `render.py`, `watch.py`)
+- `install.sh`, `install.ps1`, `install.py` - installers
+- `.claude-plugin/` - Claude Code and Copilot CLI manifests
+- `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `LICENSE`, `assets/demo.svg`, `.github/workflows/tests.yml`
 
 ## How to run and verify
-- `python -m unittest discover -s tests -t .` (78 pass)
-- `python install.py --dry-run`, `python install.py status`
-- `python skills/handoff/scripts/handoff.py sessions` and `... now --tool claude --print`
-- `claude plugin validate .` (with the full path to `claude.exe` on this PC)
+- `python -m unittest discover -s tests -t .` (81 pass)
+- `python install.py --dry-run`; `cat install.sh | HOME=<fake> USERPROFILE=<fake> HANDOFF_ARCHIVE=<local .tar.gz> sh`
+- `claude plugin validate .`
+- After pushing: `npx -y skills@latest add chentaymane/handOff --list`
 
 ## Open questions for the user
-- Which license, if they want to sell or publish it?
+- Set the GitHub repo description and topics?
 
 <!-- handoff:auto:start -->
 ## Auto handoff
 
-_Last update: 2026-10-15 14:12 +0000, from a **Claude Code** session (claude-opus-5-5). Written by [handoff](https://github.com/chentaymane/handoff) from the session's log and git: this section is rewritten automatically, anything outside it is kept._
+_Last update: 2026-10-15 15:05 +0000, from a **Claude Code** session (claude-opus-5-5). Written by [handoff](https://github.com/chentaymane/handOff) from the session's log and git: this section is rewritten automatically, anything outside it is kept._
 
 ### Goal
 **Session:** Skill conversion for CLI
@@ -79,89 +75,100 @@ _Last update: 2026-10-15 14:12 +0000, from a **Claude Code** session (claude-opu
 
 **Latest request:**
 
-> Commit these changes and push them to GitHub.
+> Commit everything, push to main, tag v2.1.0 and create the GitHub release with the skill zip attached.
 
 ### Where we stopped
-> Signed in to GitHub as chentaymane, level with `origin/main`, and the secret scan found nothing. Next I'm updating HANDOFF.md so the committed copy doesn't say "not committed".
+> The demo change is my own spacing tweak, and `main` is level with GitHub. Updating HANDOFF.md so the committed copy describes the release:
 
 ### Next steps
 1. Read "Where we stopped" and finish anything it left open.
 2. Run `git status` to find uncommitted or half-finished edits before starting new work.
 
 ### Files changed in this session
+_The last 25 of 52 files:_
+- `skills/handoff/scripts/handoff/watch.py` - renamed
+- `tests/__init__.py` - edited
+- `tests/test_skill.py` - added
 - `skills/handoff/scripts/handoff/app.py` - edited
 - `skills/handoff/scripts/handoff/render.py` - edited
 - `skills/handoff/scripts/handoff.py` - written
 - `install.py` - written
 - `tests/__init__.py` - written
-- `pyproject.toml` - written
-- `skills/handoff/SKILL.md` - written
-- `skills/handoff/references/clis.md` - written
-- `skills/handoff/scripts/handoff/cli.py` - edited
 - `skills/handoff/scripts/handoff/skill.py` - written
-- `tests/test_skill.py` - written
+- `install.sh` - written
+- `install.ps1` - written
+- `.gitattributes` - written
+- `skills/handoff/scripts/handoff/cli.py` - edited
+- `skills/handoff/SKILL.md` - written
+- `.claude-plugin/plugin.json` - edited
+- `pyproject.toml` - written
+- `skills/handoff/references/clis.md` - written
+- `CHANGELOG.md` - written
+- `CONTRIBUTING.md` - written
+- `.github/workflows/tests.yml` - written
+- `assets/demo.svg` - written
+- `.claude/preview-demo.html` - written
 - `README.md` - written
+- `tests/test_skill.py` - written
 - `HANDOFF.md` - written
 
 ### Recent commands
-- `W="C:/Users/chent/AppData/Local/Temp/claude/C--Users-chent-Desktop-handOff/115997e7-5d46-4107-9c10-f60a477cb7cc/scratchpad/wheel"; rm -rf "$W"; python -m pip...`
-- `python skills/handoff/scripts/handoff.py status --days 2 --limit 4; ls "$APPDATA/Microsoft/Windows/Start Menu/Programs/Startup/" | grep -i handoff; ls "$LOCA...`
-- `cat "$APPDATA/Microsoft/Windows/Start Menu/Programs/Startup/handoff-watch.vbs"; echo; tail -5 ~/.handoff/handoff.log`
-- `ls /c/Users/chent/Desktop/Memory-Skill | head; ls /c/Users/chent/Desktop/Memory-Skill/handoff 2>&1 | head -3`
-- `python install.py && echo ---- && python install.py status && ls ~/.claude/skills/handoff/scripts ~/.agents/skills/handoff`
-- `python ~/.claude/skills/handoff/scripts/handoff.py now --tool claude && grep -n "handoff:auto\|^### \|Tool:\*\*" HANDOFF.md | head -20 && git status --short...`
-- `git status --short && echo ---- && git diff --cached --stat | tail -1; git add -A -n . | grep -iE "zip|egg|build/|__pycache__|\.tmp" ; echo "---- secrets sca...`
-- `python ~/.claude/skills/handoff/scripts/handoff.py now --tool claude && git add -A && git commit -q -F - <<'EOF' Turn handoff into a cross-CLI Agent Skill Th...`
+- `SP="C:/Users/chent/AppData/Local/Temp/claude/C--Users-chent-Desktop-handOff/115997e7-5d46-4107-9c10-f60a477cb7cc/scratchpad"; CLAUDE="/c/Users/chent/AppData/...`
+- `SP="C:/Users/chent/AppData/Local/Temp/claude/C--Users-chent-Desktop-handOff/115997e7-5d46-4107-9c10-f60a477cb7cc/scratchpad"; CLAUDE="/c/Users/chent/AppData/...`
+- `SP="C:/Users/chent/AppData/Local/Temp/claude/C--Users-chent-Desktop-handOff/115997e7-5d46-4107-9c10-f60a477cb7cc/scratchpad"; CLAUDE="/c/Users/chent/AppData/...`
+- `CLAUDE="/c/Users/chent/AppData/Roaming/Claude/claude-code/2.1.295/d2e29494ec83/claude.exe"; "$CLAUDE" plugin validate . 2>&1 | tail -4; echo "== sh -n"; sh -...`
+- `python install.py 2>&1 | head -6`
+- `python ~/.claude/skills/handoff/scripts/handoff.py now --tool claude && python -m unittest discover -s tests -t . 2>&1 | tail -2 && git status --short`
+- `grep -n 'class="dim">\|<rect x="8[0-9][0-9]" y="234"' assets/demo.svg | head -6; sed -n 1,25p HANDOFF.md; git fetch -q origin && git status -sb | head -1`
+- `python ~/.claude/skills/handoff/scripts/handoff.py now --tool claude >/dev/null && python -m unittest discover -s tests -t . 2>&1 | tail -1 && git add -A &&...`
 
 ### Errors seen
-- Exit code 2 30:def place_reason(root): 31- """Why a HANDOFF.md must never be written in this folder, or None.""" 32- try: 33- root = Path(root).resolve() 34- except OSError: 35- return "folder unavailable" 36- if not root.is_dir(): 37- r...
-- Exit code 2 /usr/bin/bash: -c: line 169: unexpected EOF while looking for matching '''
-- Not shown: commit does not hold right now (app actions available: create_pr), so the app could not draw that button and would drop your question with it. Call wrap_up again with only available app actions, or say it as a reply ({"label":...
+- screenshot failed: Screenshot timed out after 5s: the page did not finish rendering in time. Retry; the pane does not need to be displayed. Claude's window may be behind another window, which can stop the page from drawing; if this repea...
+- [navigate] opened file:///C:/Users/chent/AppData/Local/Temp/claude/C--Users-chent-Desktop-handOff/115997e7-5d46-4107-9c10-f60a477cb7cc/scratchpad/preview-demo.html in the preview pane (files outside the project folder render as static sn...
+- This tab shows a local file, not a web page; page tools can't act on it here. Open web pages in a new tab ('tabs_create', then 'navigate').
+- This tab shows a local file, not a web page; page tools can't act on it here. Open web pages in a new tab ('tabs_create', then 'navigate').
+- Exit code 2 Downloading handoff (main)... curl: (6) Could not resolve host: github.com handoff: Could not download https://github.com/chentaymane/handOff/archive/main.tar.gz ls: cannot access 'C:/Users/chent/AppData/Local/Temp/claude/C--...
 
 ### Session
-- **Tool:** Claude Code (claude-opus-5-5), 82 tool calls
-- **Active:** 2026-10-15 13:49 to 2026-10-15 14:12
-- **Context:** ~245K of 1000K tokens (25%, window size assumed)
+- **Tool:** Claude Code (claude-opus-5-5), 174 tool calls
+- **Active:** 2026-10-15 13:49 to 2026-10-15 15:05
+- **Context:** ~367K of 1000K tokens (37%, window size assumed)
 - **Full log:** `C:\Users\chent\.claude\projects\C--Users-chent-Desktop-handOff\115997e7-5d46-4107-9c10-f60a477cb7cc.jsonl`
 
 ### Repo
-- **Branch:** `main` @ `86e1282` - Rewrite the README and show home-relative paths in the dashboard
+- **Branch:** `main` @ `eacad9b` - Turn handoff into a cross-CLI Agent Skill
 - **Upstream:** `origin/main` - ahead 0, behind 0
-- **Uncommitted:** 33 changed, 0 untracked
+- **Uncommitted:** 10 changed, 11 untracked
 
-Recent commits:
+Commits made during this session:
 
 ```
-86e1282 2026-09-29 Rewrite the README and show home-relative paths in the dashboard
-0819762 2026-09-29 Add a local dashboard and read Qwen Code, Copilot CLI, Freebuff and Aider
-b4d248e 2026-09-16 Fix the wording of handoff start's message
-cd801a2 2026-09-16 Read Cursor, OpenCode and Gemini CLI sessions too
-a50d391 2026-09-16 Fix marker matching that corrupted HANDOFF.md files quoting the markers
+eacad9b 10-15 14:12 Turn handoff into a cross-CLI Agent Skill
 ```
 
 Working tree:
 
 ```
-A  .claude-plugin/marketplace.json
-A  .claude-plugin/plugin.json
-M  README.md
-D  handoff/cli.py
-A  install.py
-M  pyproject.toml
-A  skills/handoff/SKILL.md
-A  skills/handoff/references/clis.md
-A  skills/handoff/scripts/handoff.py
-R  handoff/__init__.py -> skills/handoff/scripts/handoff/__init__.py
-R  handoff/__main__.py -> skills/handoff/scripts/handoff/__main__.py
-R  handoff/app.py -> skills/handoff/scripts/handoff/app.py
-A  skills/handoff/scripts/handoff/cli.py
-R  handoff/dashboard.html -> skills/handoff/scripts/handoff/dashboard.html
-R  handoff/dashboard.py -> skills/handoff/scripts/handoff/dashboard.py
-R  handoff/render.py -> skills/handoff/scripts/handoff/render.py
-R  handoff/session.py -> skills/handoff/scripts/handoff/session.py
-A  skills/handoff/scripts/handoff/skill.py
-R  handoff/sources/__init__.py -> skills/handoff/scripts/handoff/sources/__init__.py
-R  handoff/sources/_db.py -> skills/handoff/scripts/handoff/sources/_db.py
-... and 13 more
+ M .claude-plugin/plugin.json
+ M README.md
+ M pyproject.toml
+ M skills/handoff/SKILL.md
+ M skills/handoff/references/clis.md
+ M skills/handoff/scripts/handoff/__init__.py
+ M skills/handoff/scripts/handoff/cli.py
+ M skills/handoff/scripts/handoff/render.py
+ M skills/handoff/scripts/handoff/system.py
+ M tests/test_skill.py
+?? .gitattributes
+?? .github/
+?? CHANGELOG.md
+?? CONTRIBUTING.md
+?? LICENSE
+?? assets/demo.svg
+?? install.ps1
+?? install.sh
+?? skills/handoff/LICENSE.txt
+?? skills/handoff/agents/
+... and 1 more
 ```
 <!-- handoff:auto:end -->

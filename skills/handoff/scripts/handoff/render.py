@@ -13,7 +13,7 @@ END = "<!-- handoff:auto:end -->"
 # The markers only count on a line of their own, so a HANDOFF.md that merely mentions them stays intact.
 BLOCK = re.compile(r"^" + re.escape(START) + r"[ \t]*\n.*?^" + re.escape(END) + r"[ \t]*$", re.M | re.S)
 STAMP = re.compile(r"^_Last update: .*$", re.M)
-APP_URL = "https://github.com/chentaymane/handoff"
+APP_URL = "https://github.com/chentaymane/handOff"
 AGENT_DIRS = (".agents", ".claude", ".codex", ".gemini", ".cursor", ".copilot", ".qwen", ".aider", ".handoff")  # agents' own files, not projects
 MAX_FILES = 25
 NO_WINDOW = 0x08000000 if os.name == "nt" else 0  # keep git from flashing console windows

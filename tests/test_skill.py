@@ -43,6 +43,26 @@ class SkillFolderTest(unittest.TestCase):
         self.assertEqual(market["plugins"][0]["name"], plugin["name"])
         self.assertIn(f'version = "{__version__}"', (ROOT / "pyproject.toml").read_text(encoding="utf-8"))
 
+    def test_release_files_agree(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn(f"badge/version-{__version__}-", readme)
+        self.assertIn(f"## [{__version__}]", (ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
+        self.assertEqual((ROOT / "LICENSE").read_text(encoding="utf-8"),
+                         (skill.SKILL_DIR / "LICENSE.txt").read_text(encoding="utf-8"))
+
+    def test_codex_metadata_points_at_real_files(self):
+        meta = (skill.SKILL_DIR / "agents" / "openai.yaml").read_text(encoding="utf-8")
+        for path in re.findall(r'icon_\w+:\s*"\./([^"]+)"', meta):
+            self.assertTrue((skill.SKILL_DIR / path).is_file(), path)
+
+    def test_shell_installer_keeps_unix_line_endings(self):
+        self.assertIn("*.sh text eol=lf", (ROOT / ".gitattributes").read_text(encoding="utf-8"))
+        script = (ROOT / "install.sh").read_bytes()
+        self.assertTrue(script.startswith(b"#!/bin/sh\n"))
+        for installer in ("install.sh", "install.ps1"):
+            self.assertIn("raw.githubusercontent.com/chentaymane/handOff/main/" + installer,
+                          (ROOT / installer).read_text(encoding="utf-8"))
+
 
 class InstallTest(unittest.TestCase):
     def setUp(self):

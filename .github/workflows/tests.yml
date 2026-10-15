@@ -1,0 +1,60 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  unit:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.10", "3.13"]
+        include:
+          - os: ubuntu-22.04
+            python: "3.8"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Unit tests
+        run: python -m unittest discover -s tests -t . -v
+      - name: Installer dry run
+        run: python install.py --dry-run
+
+  install-sh:
+    name: install.sh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint
+        run: shellcheck install.sh
+      - name: Install from a local archive into an empty home folder
+        run: |
+          git archive --format=tar.gz --prefix=handOff-main/ -o "$RUNNER_TEMP/handoff.tar.gz" HEAD
+          export HOME="$RUNNER_TEMP/home"
+          mkdir -p "$HOME/.claude"
+          HANDOFF_ARCHIVE="$RUNNER_TEMP/handoff.tar.gz" sh install.sh
+          test -f "$HOME/.claude/skills/handoff/SKILL.md"
+          test -f "$HOME/.agents/skills/handoff/scripts/handoff.py"
+          python3 "$HOME/.agents/skills/handoff/scripts/handoff.py" skill uninstall
+          test ! -e "$HOME/.agents/skills/handoff"
+
+  install-ps1:
+    name: install.ps1
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install from a local archive into an empty home folder
+        shell: powershell
+        run: |
+          git archive --format=zip --prefix=handOff-main/ -o "$env:RUNNER_TEMP\handoff.zip" HEAD
+          $env:USERPROFILE = (New-Item -ItemType Directory -Path "$env:RUNNER_TEMP\home").FullName
+          $env:HANDOFF_ARCHIVE = "$env:RUNNER_TEMP\handoff.zip"
+          Get-Content -Raw install.ps1 | Invoke-Expression
+          if (-not (Test-Path "$env:USERPROFILE\.agents\skills\handoff\SKILL.md")) { throw "not installed" }
